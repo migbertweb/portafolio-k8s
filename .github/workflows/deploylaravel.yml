@@ -1,0 +1,29 @@
+name: CI/CD Portafolio App
+description: Deploy de la aplicación Portafolio a Kubernetes con validaciones y notificaciones
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    # Evita que el job corra si fue ejecutado por el bot
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup arkades
+        uses: alexellis/arkade-get@master
+        with:
+        ksops: latest
+        kubeval: latest
+        kube-linter: latest
+
+      - name: check las herramientas
+        run: |
+          kubectl version --client
+          kustomize version
+          ksops -v
+          kubeval --version
+          kube-linter version
