@@ -36,8 +36,7 @@ jobs:
 
       - name: check las herramientas
         run: |
-          kubectl version
-          kustomize version
+          kubectl version --client
           kubeval --version
           kube-linter version
           sops --version
