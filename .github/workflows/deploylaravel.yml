@@ -79,7 +79,7 @@ jobs:
 
           echo "🔍 Ejecutando kube-linter sobre los manifiestos de Kustomize..."
           # Ejecutar kube-linter y capturar errores
-          if ! ./kube-linter lint <(kustomize build --enable-alpha-plugins --enable-exec apps/portafolio/k8s/overlays/prod); then
+          if ! ./kube-linter lint <(kustomize build --enable-alpha-plugins --enable-exec k8s/overlays/prod); then
             echo "❌ KubeLinter encontró errores. Por favor corrige antes de continuar."
             exit 1
           else
@@ -92,7 +92,7 @@ jobs:
 
           echo "🔍 Ejecutando kubeconform sobre los manifiestos generados por Kustomize..."
 
-          if ! kustomize build --enable-alpha-plugins --enable-exec apps/portafolio/k8s/overlays/prod | ./kubeconform -strict -summary -kubernetes-version 1.32.4 -skip "IngressRoute"  --ignore-missing-schemas ; then
+          if ! kustomize build --enable-alpha-plugins --enable-exec k8s/overlays/prod | ./kubeconform -strict -summary -kubernetes-version 1.32.4 -skip "IngressRoute"  --ignore-missing-schemas ; then
             echo "❌ kubeconform detectó errores de validación en los manifiestos. Corrígelos antes de hacer deploy."
             exit 1
           else
