@@ -4,7 +4,7 @@ description: Deploy de la aplicación Portafolio a Kubernetes con validaciones y
 on:
   push:
     branches:
-      - master
+      - dev
 
 jobs:
   deploy:
