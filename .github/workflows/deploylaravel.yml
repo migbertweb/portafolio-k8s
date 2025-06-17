@@ -13,16 +13,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup arkades
+      - name: Setup arkade e instalar las herramientas
         uses: alexellis/arkade-get@master
         with:
           kubeval: latest
           kube-linter: latest
-          ksops: latest
+          sops: latest
+      # Instalacion de herramientas necesarias para K8s
+      - name: Instalar KSOPS
+        run: |
+          mkdir -p ~/.config/kustomize/plugin/viaduct.ai/v1/ksops
+          curl -LO https://github.com/viaduct-ai/kustomize-sops/releases/download/v4.3.3/ksops_4.3.3_Linux_x86_64.tar.gz
+          tar -xzf ksops_4.3.3_Linux_x86_64.tar.gz
+          rm ksops_4.3.3_Linux_x86_64.tar.gz
+          mv ksops ~/.config/kustomize/plugin/viaduct.ai/v1/ksops/ksops
+      # Instalar Age y SOPS
+      - name: Instalar Age
+        run: |
+          curl -L https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz | tar xz
+          sudo mv age/age /usr/local/bin/
+          sudo mv age/age-keygen /usr/local/bin/
 
       - name: check las herramientas
         run: |
-          kubectl version --client
+          kubectl version
           kustomize version
           kubeval --version
           kube-linter version
+          sops --version
+          age --version
