@@ -16,14 +16,13 @@ jobs:
       - name: Setup arkades
         uses: alexellis/arkade-get@master
         with:
-        ksops: latest
-        kubeval: latest
-        kube-linter: latest
+          kubeval: latest
+          kube-linter: latest
+          ksops: latest
 
       - name: check las herramientas
         run: |
           kubectl version --client
           kustomize version
-          ksops -v
           kubeval --version
           kube-linter version
