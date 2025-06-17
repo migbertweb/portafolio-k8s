@@ -4,22 +4,23 @@ description: Deploy de la aplicación Portafolio a Kubernetes con validaciones y
 on:
   push:
     branches:
-      - master
+      - dev
 
 jobs:
   deploy:
-    # Evita que el job corra si fue ejecutado por el bot
+    ### Evita que el job corra si fue ejecutado por el bot
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:
+      ######### Instalacion de herramientas necesarias para K8s ##########
       - name: Setup arkade e instalar las herramientas
         uses: alexellis/arkade-get@master
         with:
-          kubeval: latest
+          kubeconform: latest
           kube-linter: latest
           sops: latest
-      # Instalacion de herramientas necesarias para K8s
+      # Instalacion de ksops
       - name: Instalar KSOPS
         run: |
           mkdir -p ~/.config/kustomize/plugin/viaduct.ai/v1/ksops
@@ -27,17 +28,73 @@ jobs:
           tar -xzf ksops_4.3.3_Linux_x86_64.tar.gz
           rm ksops_4.3.3_Linux_x86_64.tar.gz
           mv ksops ~/.config/kustomize/plugin/viaduct.ai/v1/ksops/ksops
-      # Instalar Age y SOPS
+      # Instalar Age y configurar clave
       - name: Instalar Age
         run: |
           curl -L https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz | tar xz
           sudo mv age/age /usr/local/bin/
           sudo mv age/age-keygen /usr/local/bin/
+      # Configurar clave privada de Age
+      - name: Configurar clave privada de Age
+        run: |
+          mkdir -p ~/.config/sops/age
+          echo "${{ secrets.SOPS_AGE_KEY }}" > ~/.config/sops/age/keys.txt
 
       - name: check las herramientas
         run: |
-          kubectl version --client
-          kubeval --version
-          kube-linter version
-          sops --version
-          age --version
+          echo "kubectl:" && kubectl version --client
+          echo "kubeconform:" && kubeconform -v
+          echo "kube-linter:" && kube-linter version
+          echo "sops:" && sops --version
+          echo "age:" && age --version
+      ######### checkout el repo ##########
+      - name: Checkout del repositorio
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GH_PAT }}
+      # Configurar Git
+      - name: Configurar Git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      ####
+      # Detectar cambios en carpeta app/
+      - name: Detectar cambios en carpeta app/
+        id: check_app
+        run: |
+          git fetch --depth=2 origin ${{ github.ref }}
+          if git diff --quiet HEAD^ HEAD -- ${{ github.workspace }}/apps/portafolio/app; then
+            echo "Sin cambios en carpeta app/"
+            echo "app_changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Cambios detectados en carpeta app/"
+            echo "app_changed=true" >> $GITHUB_OUTPUT
+          fi
+      ###############################
+      # Linting con Kube-linter
+      - name: Linting con kube-linter
+        run: |
+          set -euo pipefail
+
+          echo "🔍 Ejecutando kube-linter sobre los manifiestos de Kustomize..."
+          # Ejecutar kube-linter y capturar errores
+          if ! ./kube-linter lint <(kustomize build --enable-alpha-plugins --enable-exec apps/portafolio/k8s/overlays/prod); then
+            echo "❌ KubeLinter encontró errores. Por favor corrige antes de continuar."
+            exit 1
+          else
+            echo "✅ KubeLinter: sin errores."
+          fi
+      # Validación con Kubeconform (reemplazo moderno de kubeval)
+      - name: Validación de manifiestos con kubeconform
+        run: |
+          set -euo pipefail
+
+          echo "🔍 Ejecutando kubeconform sobre los manifiestos generados por Kustomize..."
+
+          if ! kustomize build --enable-alpha-plugins --enable-exec apps/portafolio/k8s/overlays/prod | ./kubeconform -strict -summary -kubernetes-version 1.32.4 -skip "IngressRoute"  --ignore-missing-schemas ; then
+            echo "❌ kubeconform detectó errores de validación en los manifiestos. Corrígelos antes de hacer deploy."
+            exit 1
+          else
+            echo "✅ kubeconform: todos los manifiestos son válidos y cumplen con los esquemas de Kubernetes."
+          fi
