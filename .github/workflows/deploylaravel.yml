@@ -71,30 +71,37 @@ jobs:
             echo "Cambios detectados en carpeta app/"
             echo "app_changed=true" >> $GITHUB_OUTPUT
           fi
-      ###############################
-      # Linting con Kube-linter
+      - name: Construir manifiestos con Kustomize
+        run: |
+          set -euo pipefail
+          echo "📦 Construyendo manifiestos con Kustomize..."
+          kustomize build --enable-alpha-plugins --enable-exec k8s/overlays/prod > kustomize-output.yaml
+
+      - name: Subir manifiestos generados como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: kustomize-manifests
+          path: kustomize-output.yaml
+
       - name: Linting con kube-linter
         run: |
           set -euo pipefail
-
-          echo "🔍 Ejecutando kube-linter sobre los manifiestos de Kustomize..."
-          # Ejecutar kube-linter y capturar errores
-          if ! kube-linter lint <(kustomize build --enable-alpha-plugins --enable-exec k8s/overlays/prod); then
+          echo "🔍 Ejecutando kube-linter sobre los manifiestos..."
+          if ! kube-linter lint kustomize-output.yaml; then
             echo "❌ KubeLinter encontró errores. Por favor corrige antes de continuar."
             exit 1
           else
             echo "✅ KubeLinter: sin errores."
           fi
-      # Validación con Kubeconform (reemplazo moderno de kubeval)
-      - name: Validación de manifiestos con kubeconform
+
+      - name: Validación con kubeconform
         run: |
           set -euo pipefail
-
-          echo "🔍 Ejecutando kubeconform sobre los manifiestos generados por Kustomize..."
-
-          if ! kustomize build --enable-alpha-plugins --enable-exec k8s/overlays/prod | kubeconform -strict -summary -kubernetes-version 1.32.4 -skip "IngressRoute"  --ignore-missing-schemas ; then
-            echo "❌ kubeconform detectó errores de validación en los manifiestos. Corrígelos antes de hacer deploy."
+          echo "🔍 Ejecutando kubeconform sobre los manifiestos..."
+          if ! kubeconform -strict -summary -kubernetes-version 1.32.4 \
+            -skip "IngressRoute" --ignore-missing-schemas kustomize-output.yaml; then
+            echo "❌ kubeconform detectó errores de validación. Corrígelos antes del deploy."
             exit 1
           else
-            echo "✅ kubeconform: todos los manifiestos son válidos y cumplen con los esquemas de Kubernetes."
+            echo "✅ kubeconform: validación exitosa."
           fi
