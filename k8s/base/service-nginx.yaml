@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: laravel-service
+  name: laravel-nginx
   namespace: portafolio
 spec:
   selector:
-    app: laravel-app
+    app: laravel-nginx
   ports:
     - port: 80
       targetPort: 80

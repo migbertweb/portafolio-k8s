@@ -7,8 +7,10 @@ resources:
   - laravel-config-env.yaml
   - nginx-config.yaml
   - pvc-laravel.yaml
-  - deployment.yaml
-  - service.yaml
+  - nginx-deploy.yaml
+  - php-fpm-deploy.yaml
+  - service-nginx.yaml
+  - service-php-fpm.yaml
   - ingressroute.yaml
   - job/laravel-init.yaml
 

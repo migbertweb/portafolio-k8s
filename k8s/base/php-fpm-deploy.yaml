@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: laravel-app
+  name: laravel-php
   namespace: portafolio
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: laravel-app
+      app: laravel-php
   template:
     metadata:
       labels:
-        app: laravel-app
+        app: laravel-php
     spec:
       containers:
         - name: php-fpm
           image: migbertweb/portafolio-app
           securityContext:
             runAsNonRoot: true
-            runAsUser: 1000 # usuario no root, podés elegir uno válido en la imagen
+            runAsUser: 1000
             readOnlyRootFilesystem: true
           ports:
             - containerPort: 9000
@@ -29,7 +29,9 @@ spec:
                 name: laravel-secret-env
           volumeMounts:
             - name: laravel-storage
-              mountPath: /var/www/html/storage
+              mountPath: /var/www/html
+            - name: laravel-code
+              mountPath: /var/www/html
           resources:
             requests:
               memory: "128Mi"
@@ -37,30 +39,10 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
-        - name: nginx
-          image: nginx:stable-alpine
-          ports:
-            - containerPort: 80
-          volumeMounts:
-            - name: laravel-storage
-              mountPath: /var/www/html/storage
-            - name: nginx-config
-              mountPath: /etc/nginx/conf.d
-            - name: laravel-code
-              mountPath: /var/www/html
-          resources:
-            requests:
-              memory: "64Mi"
-              cpu: "50m"
-            limits:
-              memory: "128Mi"
-              cpu: "100m"
       volumes:
         - name: laravel-storage
           persistentVolumeClaim:
             claimName: laravel-pvc
-        - name: nginx-config
-          configMap:
-            name: nginx-config
         - name: laravel-code
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: laravel-pvc

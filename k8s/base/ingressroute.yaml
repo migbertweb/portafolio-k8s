@@ -10,7 +10,7 @@ spec:
     - match: Host(`migbertweb.xyz`)
       kind: Rule
       services:
-        - name: laravel-service
+        - name: laravel-nginx
           port: 80
       middlewares:
         - name: default-headers

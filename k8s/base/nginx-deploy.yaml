@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: laravel-nginx
+  namespace: portafolio
+  annotations:
+    ignore-check.kube-linter.io/privileged-container: "This deployment needs to run as privileged because it needs kernel access"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: laravel-nginx
+  template:
+    metadata:
+      labels:
+        app: laravel-nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:stable-alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: laravel-storage
+              mountPath: /var/www/html
+            - name: laravel-code
+              mountPath: /var/www/html
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+      volumes:
+        - name: laravel-storage
+          persistentVolumeClaim:
+            claimName: laravel-pvc
+        - name: laravel-code
+          persistentVolumeClaim:
+            claimName: laravel-pvc
+        - name: nginx-config
+          configMap:
+            name: nginx-config
