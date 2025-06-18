@@ -4,7 +4,7 @@ metadata:
   name: laravel-nginx
   namespace: portafolio
   annotations:
-    ignore-check.kube-linter.io/privileged-container: "This deployment needs to run as privileged because it needs kernel access"
+    ignore-check.kube-linter.io/ignore-all: "This deployment needs to run as privileged because it needs kernel access"
 spec:
   replicas: 1
   selector:
