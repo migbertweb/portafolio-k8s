@@ -18,6 +18,10 @@ spec:
       containers:
         - name: nginx
           image: nginx:stable-alpine
+          securityContext:
+            runAsNonRoot: false
+            runAsUser: 1000
+            readOnlyRootFilesystem: true
           ports:
             - containerPort: 80
           volumeMounts:
