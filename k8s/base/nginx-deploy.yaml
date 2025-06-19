@@ -21,7 +21,7 @@ spec:
           image: nginx:stable-alpine
           securityContext:
             runAsNonRoot: false
-            runAsUser: 0
+            runAsUser: 1000
             readOnlyRootFilesystem: false
           ports:
             - containerPort: 80

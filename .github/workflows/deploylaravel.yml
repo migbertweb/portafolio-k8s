@@ -69,7 +69,7 @@ jobs:
         id: check_app
         run: |
           git fetch --depth=2 origin ${{ github.ref }}
-          if git diff --quiet HEAD^ HEAD -- /app; then
+          if git diff --quiet HEAD^ HEAD -- app/; then
             echo "Sin cambios en carpeta app/"
             echo "app_changed=false" >> $GITHUB_OUTPUT
           else
