@@ -6,6 +6,8 @@ metadata:
   annotations:
     ignore-check.kube-linter.io/privileged-container: "This deployment needs to run as privileged because it needs kernel access"
     ignore-check.kube-linter.io/no-read-only-root-fs: "This deployment needs to run with a writable root filesystem to allow Nginx to write logs and cache files"
+    ignore-check.kube-linter.io/no-run-as-non-root: "This deployment needs to run as root to allow Nginx to bind to port 80"
+    ignore-check.kube-linter.io/no-run-as-user: "This deployment needs to run as root to allow Nginx to bind to port 80"
 spec:
   replicas: 1
   selector:
@@ -21,7 +23,7 @@ spec:
           image: nginx:stable-alpine
           securityContext:
             runAsNonRoot: false
-            runAsUser: 1000
+            runAsUser: 0
             readOnlyRootFilesystem: false
           ports:
             - containerPort: 80
