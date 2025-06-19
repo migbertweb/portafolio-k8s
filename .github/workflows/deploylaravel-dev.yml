@@ -1,4 +1,4 @@
-name: CI/CD Portafolio App
+name: CI/CD Portafolio App -DEV
 description: Deploy de la aplicación Portafolio a Kubernetes con validaciones y notificaciones
 on:
   push:
