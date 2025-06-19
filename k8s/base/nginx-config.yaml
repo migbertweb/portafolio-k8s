@@ -5,6 +5,7 @@ metadata:
   namespace: portafolio
 data:
   default.conf: |
+    pid /tmp/nginx.pid;
     server {
         listen 80;
         server_name laravel-app.local;

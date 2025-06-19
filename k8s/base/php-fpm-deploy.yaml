@@ -20,6 +20,10 @@ spec:
             runAsNonRoot: true
             runAsUser: 1000
             readOnlyRootFilesystem: true
+          initContainers:
+            - name: fix-permissions
+              image: busybox
+              command: ["sh", "-c", "chown -R 1000:1000 /storage /cache"]
           ports:
             - containerPort: 9000
           envFrom:
@@ -30,6 +34,10 @@ spec:
           volumeMounts:
             - name: laravel-code
               mountPath: /var/www/html
+            - name: laravel-storage
+              mountPath: /var/www/html/storage
+            - name: laravel-cache
+              mountPath: /var/www/html/bootstrap/cache
           resources:
             requests:
               memory: "128Mi"
@@ -41,3 +49,7 @@ spec:
         - name: laravel-code
           persistentVolumeClaim:
             claimName: laravel-pvc
+        - name: laravel-storage
+          emptyDir: {}
+        - name: laravel-cache
+          emptyDir: {}
