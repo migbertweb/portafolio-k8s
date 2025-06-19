@@ -175,15 +175,27 @@ jobs:
         id: kustomize_set
         run: |
           set +e
-          IMAGE=${{ secrets.DOCKER_USERNAME }}/portafolio-app
-          TAG=${{ needs.build.outputs.tag }}
-          echo "Actualizando imagen $IMAGE con tag $TAG en kustomization.yaml"
-          cd k8s/base
-          if kustomize edit set image $IMAGE=$IMAGE:$TAG; then
-            echo "status=success" >> $GITHUB_OUTPUT
-          else
-            echo "status=failure" >> $GITHUB_OUTPUT
-          fi
+            IMAGE=${{ secrets.DOCKER_USERNAME }}/portafolio-app
+            TAG=${{ needs.build.outputs.tag }}
+
+            echo "Actualizando imagen $IMAGE con tag $TAG en kustomization.yaml"
+            cd k8s/base
+
+            if [ -z "$TAG" ]; then
+              echo "⚠️ Tag vacío. Omitiendo."
+              echo "status=skipped" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if kustomize edit set image "$IMAGE=$IMAGE:$TAG"; then
+              echo "✅ Imagen actualizada correctamente."
+              echo "status=success" >> "$GITHUB_OUTPUT"
+              exit 0
+            else
+              echo "❌ Error al actualizar imagen en kustomization.yaml."
+              echo "status=failure" >> "$GITHUB_OUTPUT"
+              exit 1
+            fi
       # hacer commit y push del nuevo tag
       - name: Hacer commit y push del nuevo tag
         env:
@@ -198,7 +210,7 @@ jobs:
   deploy:
     name: 📦 Deploy al clúster Kubernetes
     runs-on: ubuntu-latest
-    needs: [build, lint, build-docker-image, update-kustomization]
+    needs: [build, lint]
     if: needs.lint.result == 'success'
     outputs:
       status: ${{ steps.k8s_apply.outputs.status }}
@@ -222,6 +234,7 @@ jobs:
         run: |
           set +e
           echo "🔁 Aplicando manifiesto kustomize-output.yaml al clúster..."
+          echo "Aplicando imagen: ${{ needs.build.outputs.tag || 'imagen sin cambios' }}"
           if kubectl apply -f kustomize-output.yaml; then
             echo "status=success" >> "$GITHUB_OUTPUT"
           else
@@ -247,7 +260,6 @@ jobs:
       COMMIT: ${{ github.sha }}
       TAG: ${{ needs.build.outputs.tag }}
       START_TIME: ${{ needs.build.outputs.start_time }}
-      DEPLOY_STATUS: ${{ needs.deploy.outputs.status }}
     steps:
       - name: Calcular duración
         id: duracion
@@ -280,8 +292,26 @@ jobs:
             echo "| 📦 Docker Build | ❌ Falló o sin tag |"
           fi
 
-          echo "| 🧩 Kustomization | $([[ \"$KUSTOMIZE_STATUS\" == \"success\" ]] && echo '✅ Actualizado' || echo '❌ Falló') |"
-          echo "| 🔁 Deploy        | $([[ \"$DEPLOY_STATUS\" == \"success\" ]] && echo '✅ Aplicado' || echo '❌ Falló') |"
+          echo "| 🧩 Kustomization | $(
+            if [[ \"$KUSTOMIZE_STATUS\" == \"success\" ]]; then
+              echo '✅ Actualizado'
+            elif [[ \"$KUSTOMIZE_STATUS\" == \"skipped\" ]]; then
+              echo '⏭️ Omitido'
+            else
+              echo '❌ Falló'
+            fi
+          ) |"
+
+          echo "| 🔁 Deploy        | $(
+            if [[ \"${{ needs.deploy.result }}\" == \"success\" ]]; then
+              echo '✅ Aplicado'
+            elif [[ \"${{ needs.deploy.result }}\" == \"skipped\" ]]; then
+              echo '⏭️ Omitido'
+            else
+              echo '❌ Falló'
+            fi
+          ) |"
+
 
           echo ""
           if [ -n "$TAG" ]; then
