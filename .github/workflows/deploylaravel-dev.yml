@@ -150,6 +150,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, lint, build-docker-image]
     if: needs.build.outputs.tag != ''
+    outputs:
+      kustomization_updated: ${{ steps.kustomize_set.outputs.status }}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -157,14 +159,18 @@ jobs:
           token: ${{ secrets.GH_PAT }}
 
       - name: Actualizar tag en kustomization.yaml
+        id: kustomize_set
         run: |
+          set +e
           IMAGE=${{ secrets.DOCKER_USERNAME }}/portafolio-app
           TAG=${{ needs.build.outputs.tag }}
           echo "Actualizando imagen $IMAGE con tag $TAG en kustomization.yaml"
-          # Actualizar kustomization.yaml en k8s/base
           cd k8s/base
-          kustomize edit set image $IMAGE=$IMAGE:$TAG
-
+          if kustomize edit set image $IMAGE=$IMAGE:$TAG; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+          fi
       - name: Hacer commit y push del nuevo tag
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
@@ -187,6 +193,7 @@ jobs:
       LINT_RESULT: ${{ needs.lint.result }}
       DOCKER_RESULT: ${{ needs.build-docker-image.result }}
       DOCKER_TAG: ${{ needs['build-docker-image'].outputs.docker_tag }}
+      KUSTOMIZE_STATUS: ${{ needs.update-kustomization.outputs.kustomization_updated }}
       REPO: ${{ github.repository }}
       BRANCH: ${{ github.ref_name }}
       COMMIT: ${{ github.sha }}
@@ -223,6 +230,8 @@ jobs:
           else
             echo "| 📦 Docker Build | ❌ Falló o sin tag |"
           fi
+
+          echo "| 🧩 Kustomization | $([[ \"$KUSTOMIZE_STATUS\" == \"success\" ]] && echo '✅ Actualizado' || echo '❌ Falló') |"
 
           echo ""
           if [ -n "$TAG" ]; then
