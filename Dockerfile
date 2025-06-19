@@ -23,6 +23,7 @@ FROM node:22-alpine AS frontend
 WORKDIR /app
 
 # Copiar solo lo necesario para npm
+COPY --from=composer-deps /app/vendor ./vendor
 COPY app/package.json app/package-lock.json app/vite.config.js ./
 COPY app/resources ./resources
 
