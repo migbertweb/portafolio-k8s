@@ -83,7 +83,8 @@ jobs:
         with:
           name: kustomize-manifests
           path: kustomize-output.yaml
-      # Generacion de nuevo tag semántico
+          #########################################
+          ### Generacion de nuevo tag semántico ###
       - name: Generar nuevo tag semántico
         id: tag
         if: steps.check_app.outputs.app_changed == 'true'
@@ -142,9 +143,9 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/portafolio-app:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/portafolio-app:buildcache,mode=max
 
-      ###############################################
-      # actualizar tag en kustomization.yaml
-      ###############################################
+  ###############################################
+  ### actualizar tag en kustomization.yaml
+  ###############################################
   update-kustomization:
     runs-on: ubuntu-latest
     needs: [build, lint, build-docker-image]
@@ -161,6 +162,16 @@ jobs:
           # Actualizar kustomization.yaml en k8s/base
           cd k8s/base
           kustomize edit set image $IMAGE=$IMAGE:$TAG
+
+      - name: Hacer commit y push del nuevo tag
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add k8s/base/kustomization.yaml
+          git commit -m "Portafolio: Updated image to ${{ needs.build.outputs.tag }} [skip ci]" || echo "Sin cambios para commitear"
+          git push https://x-access-token:${GH_PAT}@github.com/${{ github.repository }} HEAD:dev
 
   ############## Resumen del despliegue ############################
   ############## Mostrar resultados en la UI de GitHub #############
