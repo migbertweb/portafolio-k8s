@@ -92,9 +92,8 @@ jobs:
           default_bump: patch
 
   lint:
+    needs: build
     uses: migbertweb/ghaction-k8s-linter/.github/workflows/lint-k8s.yml@master
-    with:
-      manifest: "manifest/output.yaml"
     secrets:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
