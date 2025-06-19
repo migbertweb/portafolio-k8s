@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: nginx
-          image: nginx:stable-alpine
+          image: nginx:stable
           securityContext:
             runAsNonRoot: false
             runAsUser: 0
