@@ -37,7 +37,7 @@ FROM php:8.4-fpm-alpine AS runtime
 WORKDIR /var/www
 
 # Instalar dependencias de sistema mínimas
-RUN apk add --no-cache libpng libzip oniguruma \
+RUN apk add --no-cache libpng zip git autoconf build-base libzip oniguruma-dev \
     && docker-php-ext-install pdo pdo_mysql mbstring zip exif pcntl bcmath \
     && pecl install redis && docker-php-ext-enable redis
 
