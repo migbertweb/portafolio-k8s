@@ -20,10 +20,6 @@ spec:
             runAsNonRoot: true
             runAsUser: 1000
             readOnlyRootFilesystem: true
-          initContainers:
-            - name: fix-permissions
-              image: busybox
-              command: ["sh", "-c", "chown -R 1000:1000 /storage /cache"]
           ports:
             - containerPort: 9000
           envFrom:
