@@ -8,6 +8,7 @@ jobs:
   ############# Construcción de manifiestos con Kustomize #############
   ############# y generación de tag semántico #############
   build:
+    name: Construir manifiestos y generar tag
     ### Evita que el job corra si fue ejecutado por el bot
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
@@ -96,6 +97,7 @@ jobs:
   ############# Linting de manifiestos con kube-linter #############
   ############# y notificaciones a Telegram ########################
   lint:
+    name: Linting de manifiestos
     needs: build
     uses: migbertweb/ghaction-k8s-linter/.github/workflows/lint-k8s.yml@master
     secrets:
