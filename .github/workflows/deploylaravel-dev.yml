@@ -149,6 +149,7 @@ jobs:
     env:
       BUILD_RESULT: ${{ needs.build.result }}
       LINT_RESULT: ${{ needs.lint.result }}
+      DOCKER_RESULT: ${{ needs.build-docker-image.result }}
       DOCKER_TAG: ${{ needs['build-docker-image'].outputs.docker_tag }}
       REPO: ${{ github.repository }}
       BRANCH: ${{ github.ref_name }}
@@ -172,22 +173,30 @@ jobs:
       - name: Mostrar resumen en la UI
         run: |
           {
-            echo "### 🔀 CI/CD Portafolio App - DEV"
-            echo ""
-            echo "| Paso          | Estado  |"
-            echo "|---------------|---------|"
-            echo "| 🔨 Build      | $([[ \"$BUILD_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
-            echo "| 🔍 Linter     | $([[ \"$LINT_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
-            echo "| 📦 Docker Build | $([[ -n \"$DOCKER_TAG\" ]] && echo '✅ Imagen publicada' || echo '⚠️ No se construyó') |"
-            echo ""
-            if [ -n "$TAG" ]; then
-              echo "- 🏷 *Tag generado:* \`$TAG\`"
-            else
-              echo "- 🏷 *Tag generado:* Ninguno"
-            fi
-            echo "- 📄 *Archivo:* \`kustomize-output.yaml\`"
-            echo "- 🌱 *Branch:* \`${BRANCH}\`"
-            echo "- 📦 *Repo:* \`${REPO}\`"
-            echo "- 🔗 [Ver commit](https://github.com/${REPO}/commit/${COMMIT})"
-            echo "- ⏱ *Duración:* ${{ steps.duracion.outputs.duration }}"
+          echo "### 🔀 CI/CD Portafolio App - DEV"
+          echo ""
+          echo "| Paso            | Estado              |"
+          echo "|-----------------|---------------------|"
+          echo "| 🔨 Build        | $([[ \"$BUILD_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
+          echo "| 🔍 Linter       | $([[ \"$LINT_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
+
+          if [[ "$DOCKER_RESULT" == "success" && -n "$DOCKER_TAG" ]]; then
+            echo "| 📦 Docker Build | ✅ Imagen publicada |"
+          elif [[ "$DOCKER_RESULT" == "skipped" ]]; then
+            echo "| 📦 Docker Build | ⏭️ Omitido (sin cambios) |"
+          else
+            echo "| 📦 Docker Build | ❌ Falló o sin tag |"
+          fi
+
+          echo ""
+          if [ -n "$TAG" ]; then
+            echo "- 🏷 *Tag generado:* \`$TAG\`"
+          else
+            echo "- 🏷 *Tag generado:* Ninguno"
+          fi
+          echo "- 📄 *Archivo:* \`kustomize-output.yaml\`"
+          echo "- 🌱 *Branch:* \`${BRANCH}\`"
+          echo "- 📦 *Repo:* \`${REPO}\`"
+          echo "- 🔗 [Ver commit](https://github.com/${REPO}/commit/${COMMIT})"
+          echo "- ⏱ *Duración:* ${{ steps.duracion.outputs.duration }}"
           } >> "$GITHUB_STEP_SUMMARY"
