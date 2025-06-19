@@ -247,19 +247,20 @@ jobs:
   summary:
     name: Generar resumen del despliegue
     runs-on: ubuntu-latest
-    needs: [build, lint, build-docker-image, update-kustomization]
+    needs: [build, lint, build-docker-image, update-kustomization, deploy]
     if: always()
     env:
       BUILD_RESULT: ${{ needs.build.result }}
       LINT_RESULT: ${{ needs.lint.result }}
       DOCKER_RESULT: ${{ needs.build-docker-image.result }}
       DOCKER_TAG: ${{ needs['build-docker-image'].outputs.docker_tag }}
-      KUSTOMIZE_STATUS: ${{ needs.update-kustomization.outputs.kustomization_updated }}
+      KUSTOMIZE_STATUS: ${{ needs.update-kustomization.result }}
       REPO: ${{ github.repository }}
       BRANCH: ${{ github.ref_name }}
       COMMIT: ${{ github.sha }}
       TAG: ${{ needs.build.outputs.tag }}
       START_TIME: ${{ needs.build.outputs.start_time }}
+      DEPLOY_STATUS: ${{ needs.deploy.result }}
     steps:
       - name: Calcular duración
         id: duracion
@@ -303,9 +304,9 @@ jobs:
           ) |"
 
           echo "| 🔁 Deploy        | $(
-            if [[ \"${{ needs.deploy.result }}\" == \"success\" ]]; then
+            if [[ \"$DEPLOY_STATUS\" == \"success\" ]]; then
               echo '✅ Aplicado'
-            elif [[ \"${{ needs.deploy.result }}\" == \"skipped\" ]]; then
+            elif [[ \"$DEPLOY_STATUS\" == \"skipped\" ]]; then
               echo '⏭️ Omitido'
             else
               echo '❌ Falló'
