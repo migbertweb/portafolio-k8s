@@ -113,5 +113,5 @@ jobs:
         with:
           github_token: ${{ secrets.GH_PAT }}
           release_branches: master
-          tag_prefix: "app-v"
+          tag_prefix: "v"
           default_bump: patch
