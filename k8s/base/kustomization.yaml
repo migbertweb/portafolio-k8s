@@ -20,4 +20,4 @@ generators:
 images:
 - name: migbertweb/portafolio-app
   newName: migbertweb/portafolio-app
-  newTag: v0.0.1-dev.8
+  newTag: v0.0.1
