@@ -18,7 +18,7 @@ spec:
           image: migbertweb/portafolio-app
           securityContext:
             runAsNonRoot: true
-            runAsUser: 1000
+            runAsUser: 101
             readOnlyRootFilesystem: true
           ports:
             - containerPort: 9000
