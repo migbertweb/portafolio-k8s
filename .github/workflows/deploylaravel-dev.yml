@@ -149,6 +149,7 @@ jobs:
     env:
       BUILD_RESULT: ${{ needs.build.result }}
       LINT_RESULT: ${{ needs.lint.result }}
+      DOCKER_TAG: ${{ needs['build-docker-image'].outputs.docker_tag }}
       REPO: ${{ github.repository }}
       BRANCH: ${{ github.ref_name }}
       COMMIT: ${{ github.sha }}
@@ -177,7 +178,7 @@ jobs:
             echo "|---------------|---------|"
             echo "| 🔨 Build      | $([[ \"$BUILD_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
             echo "| 🔍 Linter     | $([[ \"$LINT_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
-            echo "| 󰡨 Docker Build | $([[ -n \"$DOCKER_TAG\" ]] && echo '✅ Imagen publicada' || echo '⚠️ No se construyó') |"
+            echo "| 📦 Docker Build | $([[ -n \"$DOCKER_TAG\" ]] && echo '✅ Imagen publicada' || echo '⚠️ No se construyó') |"
             echo ""
             if [ -n "$TAG" ]; then
               echo "- 🏷 *Tag generado:* \`$TAG\`"
