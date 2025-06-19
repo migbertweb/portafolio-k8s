@@ -133,11 +133,11 @@ jobs:
       - name: Mostrar resumen en la UI
         run: |
           {
-            echo "### 🚀 CI/CD Portafolio App - DEV"
+            echo "### 🔀 CI/CD Portafolio App - DEV"
             echo ""
             echo "| Paso          | Estado  |"
             echo "|---------------|---------|"
-            echo "| 🏗️ Build      | $([[ \"$BUILD_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
+            echo "| 🔨 Build      | $([[ \"$BUILD_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
             echo "| 🔍 Linter     | $([[ \"$LINT_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
             echo ""
             if [ -n "$TAG" ]; then
@@ -146,7 +146,7 @@ jobs:
               echo "- 🏷 *Tag generado:* Ninguno"
             fi
             echo "- 📄 *Archivo:* \`kustomize-output.yaml\`"
-            echo "- 🌿 *Branch:* \`${BRANCH}\`"
+            echo "- 🌱 *Branch:* \`${BRANCH}\`"
             echo "- 📦 *Repo:* \`${REPO}\`"
             echo "- 🔗 [Ver commit](https://github.com/${REPO}/commit/${COMMIT})"
             echo "- ⏱ *Duración:* ${{ steps.duracion.outputs.duration }}"
