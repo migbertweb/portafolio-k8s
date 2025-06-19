@@ -7,7 +7,7 @@ on:
       - dev
 
 jobs:
-  deploy:
+  build:
     ### Evita que el job corra si fue ejecutado por el bot
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
@@ -17,8 +17,6 @@ jobs:
       - name: Setup arkade e instalar las herramientas
         uses: alexellis/arkade-get@master
         with:
-          kubeconform: latest
-          kube-linter: latest
           sops: latest
       # Instalacion de ksops
       - name: Instalar KSOPS
@@ -43,10 +41,9 @@ jobs:
       - name: check las herramientas
         run: |
           echo "kubectl:" && kubectl version --client
-          echo "kubeconform:" && kubeconform -v
-          echo "kube-linter:" && kube-linter version
           echo "sops:" && sops --version
           echo "age:" && age --version
+
       ######### checkout el repo ##########
       - name: Checkout del repositorio
         uses: actions/checkout@v3
@@ -83,28 +80,6 @@ jobs:
           name: kustomize-manifests
           path: kustomize-output.yaml
 
-      - name: Linting con kube-linter
-        run: |
-          set -euo pipefail
-          echo "🔍 Ejecutando kube-linter sobre los manifiestos..."
-          if ! kube-linter lint kustomize-output.yaml; then
-            echo "❌ KubeLinter encontró errores. Por favor corrige antes de continuar."
-            exit 1
-          else
-            echo "✅ KubeLinter: sin errores."
-          fi
-
-      - name: Validación con kubeconform
-        run: |
-          set -euo pipefail
-          echo "🔍 Ejecutando kubeconform sobre los manifiestos..."
-          if ! kubeconform -strict -summary -kubernetes-version 1.32.4 \
-            -skip "IngressRoute" --ignore-missing-schemas kustomize-output.yaml; then
-            echo "❌ kubeconform detectó errores de validación. Corrígelos antes del deploy."
-            exit 1
-          else
-            echo "✅ kubeconform: validación exitosa."
-          fi
       # Generacion de nuevo tag semántico
       - name: Generar nuevo tag semántico
         id: tag
@@ -115,3 +90,11 @@ jobs:
           release_branches: master
           tag_prefix: "v"
           default_bump: patch
+
+  lint:
+    uses: migbertweb/ghaction-k8s-linter/.github/workflows/lint-k8s.yml@master
+    with:
+      manifest: "manifest/output.yaml"
+    secrets:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}

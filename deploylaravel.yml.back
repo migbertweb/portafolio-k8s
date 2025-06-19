@@ -1,3 +1,26 @@
+      - name: Linting con kube-linter
+        run: |
+          set -euo pipefail
+          echo "🔍 Ejecutando kube-linter sobre los manifiestos..."
+          if ! kube-linter lint kustomize-output.yaml; then
+            echo "❌ KubeLinter encontró errores. Por favor corrige antes de continuar."
+            exit 1
+          else
+            echo "✅ KubeLinter: sin errores."
+          fi
+
+      - name: Validación con kubeconform
+        run: |
+          set -euo pipefail
+          echo "🔍 Ejecutando kubeconform sobre los manifiestos..."
+          if ! kubeconform -strict -summary -kubernetes-version 1.32.4 \
+            -skip "IngressRoute" --ignore-missing-schemas kustomize-output.yaml; then
+            echo "❌ kubeconform detectó errores de validación. Corrígelos antes del deploy."
+            exit 1
+          else
+            echo "✅ kubeconform: validación exitosa."
+          fi
+
 
       # Creacion de imagen docker para amd64 y arm64
       - name: Configurar Buildx para multi-arch
