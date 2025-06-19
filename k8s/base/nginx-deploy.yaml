@@ -21,7 +21,7 @@ spec:
           image: nginx:stable-alpine
           securityContext:
             runAsNonRoot: false
-            runAsUser: 1000
+            runAsUser: 0
             readOnlyRootFilesystem: false
           ports:
             - containerPort: 80
@@ -30,6 +30,8 @@ spec:
               mountPath: /var/www/html
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
           resources:
             requests:
               memory: "64Mi"
@@ -44,3 +46,5 @@ spec:
         - name: nginx-config
           configMap:
             name: nginx-config
+        - name: nginx-cache
+          emptyDir: {} # 👈 esto crea un volumen temporal writable
