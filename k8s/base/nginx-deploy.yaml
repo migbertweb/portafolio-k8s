@@ -23,7 +23,7 @@ spec:
           image: nginx:stable
           securityContext:
             runAsNonRoot: false
-            runAsUser: 0
+            runAsUser: 101
             readOnlyRootFilesystem: false
           ports:
             - containerPort: 80
