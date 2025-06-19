@@ -6,31 +6,13 @@
         run: |
           echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
           export KUBECONFIG=$PWD/kubeconfig.yaml
-
-      ###############################
-      # Aplicar despliegue al clúster
       - name: Aplicar despliegue al clúster
         env:
           KUBECONFIG: ${{ github.workspace }}/apps/portafolio/kubeconfig.yaml
         run: |
           ls -la
           echo "Aplicando despliegue al clúster..."
-          kustomize build --enable-alpha-plugins --enable-exec ${{ github.workspace }}/apps/portafolio/k8s/overlays/prod | kubectl apply -f -
-      # Esperar a que el Deployment esté listo
-      - name: Esperar rollout del Deployment laravel-app
-        env:
-          KUBECONFIG: ${{ github.workspace }}/apps/portafolio/kubeconfig.yaml
-        run: |
-          echo "Esperando a que el Deployment laravel-app esté listo..."
-          kubectl rollout status deployment/laravel-app -n portafolio
-
-      # Esperar a que el Job laravel-init finalice
-      - name: Esperar a que el Job laravel-init finalice
-        env:
-          KUBECONFIG: ${{ github.workspace }}/apps/portafolio/kubeconfig.yaml
-        run: |
-          echo "Esperando a que el Job laravel-init termine..."
-          kubectl wait --for=condition=complete --timeout=180s job/laravel-init -n portafolio
+          kustomize build --enable-alpha-plugins --enable-exec k8s/overlays/prod | kubectl apply -f -
 
       ###############################
       ## Mensajes de notificación por Telegram

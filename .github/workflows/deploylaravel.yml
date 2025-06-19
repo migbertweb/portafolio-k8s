@@ -186,6 +186,40 @@ jobs:
           git commit -m "Portafolio: Updated image to ${{ needs.build.outputs.tag }} [skip ci]" || echo "Sin cambios para commitear"
           git push origin HEAD:${RAMA}
 
+  deploy:
+    name: 📦 Deploy al clúster Kubernetes
+    runs-on: ubuntu-latest
+    needs: [build, lint, build-docker-image, update-kustomization]
+    if: needs.lint.result == 'success'
+    outputs:
+      status: ${{ steps.k8s_apply.outputs.status }}
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+      - name: Descargar manifiesto generado
+        uses: actions/download-artifact@v4
+        with:
+          name: kustomize-manifests
+          path: .
+      - name: Configurar Kubeconfig
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
+      - name: Aplicar manifiesto al clúster
+        id: k8s_apply
+        env:
+          KUBECONFIG: kubeconfig.yaml
+        run: |
+          set +e
+          echo "🔁 Aplicando manifiesto kustomize-output.yaml al clúster..."
+          if kubectl apply -f kustomize-output.yaml; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
   ############## Resumen del despliegue ############################
   ############## Mostrar resultados en la UI de GitHub #############
   summary:
@@ -204,6 +238,7 @@ jobs:
       COMMIT: ${{ github.sha }}
       TAG: ${{ needs.build.outputs.tag }}
       START_TIME: ${{ needs.build.outputs.start_time }}
+      DEPLOY_STATUS: ${{ needs.deploy.outputs.status }}
     steps:
       - name: Calcular duración
         id: duracion
@@ -237,6 +272,7 @@ jobs:
           fi
 
           echo "| 🧩 Kustomization | $([[ \"$KUSTOMIZE_STATUS\" == \"success\" ]] && echo '✅ Actualizado' || echo '❌ Falló') |"
+          echo "| 🔁 Deploy        | $([[ \"$DEPLOY_STATUS\" == \"success\" ]] && echo '✅ Aplicado' || echo '❌ Falló') |"
 
           echo ""
           if [ -n "$TAG" ]; then
