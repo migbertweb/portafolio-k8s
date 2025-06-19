@@ -16,10 +16,6 @@ spec:
       containers:
         - name: php-fpm
           image: migbertweb/portafolio-app
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 101
-            readOnlyRootFilesystem: true
           ports:
             - containerPort: 9000
           envFrom:
