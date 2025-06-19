@@ -105,3 +105,13 @@ jobs:
           else
             echo "✅ kubeconform: validación exitosa."
           fi
+      # Generacion de nuevo tag semántico
+      - name: Generar nuevo tag semántico
+        id: tag
+        if: steps.check_app.outputs.app_changed == 'true'
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ secrets.GH_PAT }}
+          release_branches: master
+          tag_prefix: "app-v"
+          default_bump: patch
