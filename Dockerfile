@@ -23,7 +23,7 @@ FROM node:22-alpine AS frontend
 WORKDIR /app
 
 # Copiar solo lo necesario para npm
-COPY app/package.json app/package-lock.json vite.config.js ./
+COPY app/package.json app/package-lock.json app/vite.config.js ./
 COPY app/resources ./resources
 
 # Instalar dependencias y compilar assets
