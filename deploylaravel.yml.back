@@ -32,13 +32,6 @@
           echo "Esperando a que el Job laravel-init termine..."
           kubectl wait --for=condition=complete --timeout=180s job/laravel-init -n portafolio
 
-      ######################################
-      - name: Hacer commit y push del nuevo tag
-        if: steps.check_app.outputs.app_changed == 'true'
-        run: |
-          git add k8s/base/kustomization.yaml
-          git commit -m "Portafolio: Updated image to ${{ steps.tag.outputs.new_tag }} [skip ci]"
-          git push origin master
       ###############################
       ## Mensajes de notificación por Telegram
       ######################################

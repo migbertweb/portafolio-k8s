@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - dev
+      - master
+env:
+  RAMA: ${{ github.ref_name }}
 jobs:
   ############# Construcción de manifiestos con Kustomize #############
   ############# y generación de tag semántico #############
@@ -93,7 +96,7 @@ jobs:
           github_token: ${{ secrets.GH_PAT }}
           release_branches: master
           pre_release_branches: dev
-          tag_prefix: "v"
+          tag_prefix: ${{ env.RAMA == 'master' && 'v' || 'v-dev' }}
           default_bump: patch
   ##################################################################
   ############# Linting de manifiestos con kube-linter #############
@@ -139,7 +142,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/portafolio-app:${{ needs.build.outputs.tag }}
-            ${{ secrets.DOCKER_USERNAME }}/portafolio-app:latest
+            ${{ secrets.DOCKER_USERNAME }}/portafolio-app:${{ env.RAMA == 'master' && 'latest' || 'dev' }}
           cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/portafolio-app:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/portafolio-app:buildcache,mode=max
 
@@ -179,7 +182,7 @@ jobs:
           git config user.email "github-actions@github.com"
           git add k8s/base/kustomization.yaml
           git commit -m "Portafolio: Updated image to ${{ needs.build.outputs.tag }} [skip ci]" || echo "Sin cambios para commitear"
-          git push origin dev
+          git push origin HEAD:${RAMA}
 
   ############## Resumen del despliegue ############################
   ############## Mostrar resultados en la UI de GitHub #############
