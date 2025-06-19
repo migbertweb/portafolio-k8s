@@ -26,8 +26,6 @@ spec:
           ports:
             - containerPort: 80
           volumeMounts:
-            - name: laravel-storage
-              mountPath: /var/www/html
             - name: laravel-code
               mountPath: /var/www/html
             - name: nginx-config
@@ -40,9 +38,6 @@ spec:
               memory: "128Mi"
               cpu: "100m"
       volumes:
-        - name: laravel-storage
-          persistentVolumeClaim:
-            claimName: laravel-pvc
         - name: laravel-code
           persistentVolumeClaim:
             claimName: laravel-pvc

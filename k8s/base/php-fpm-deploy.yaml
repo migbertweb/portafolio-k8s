@@ -28,8 +28,6 @@ spec:
             - secretRef:
                 name: laravel-secret-env
           volumeMounts:
-            - name: laravel-storage
-              mountPath: /var/www/html
             - name: laravel-code
               mountPath: /var/www/html
           resources:
@@ -40,9 +38,6 @@ spec:
               memory: "256Mi"
               cpu: "200m"
       volumes:
-        - name: laravel-storage
-          persistentVolumeClaim:
-            claimName: laravel-pvc
         - name: laravel-code
           persistentVolumeClaim:
             claimName: laravel-pvc
