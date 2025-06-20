@@ -173,7 +173,7 @@ jobs:
 
       # instalar las herramientas necesarias
       - name: Setup herramientas K8s
-        uses: migbertweb/ghaction-k8s-ksops@v1
+        uses: migbertweb/ghaction-k8s-ksops@v2
         with:
           ksops_version: "4.3.3"
           sops_version: "latest"
