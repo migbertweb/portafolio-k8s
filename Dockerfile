@@ -52,9 +52,6 @@ RUN chown -R www-data:www-data /var/www \
     && find storage bootstrap/cache -type d -exec chmod 755 {} \; \
     && find storage bootstrap/cache -type f -exec chmod 644 {} \;
 
-# Copiar el resto de la app (incluye artisan)
-COPY app/ ./
-
 # Exponer el puerto usado por PHP-FPM
 EXPOSE 9000
 

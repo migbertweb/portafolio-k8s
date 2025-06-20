@@ -18,7 +18,7 @@ spec:
         app: laravel-app
     spec:
       containers:
-        - name: php-fpm
+        - name: laravel-app
           image: migbertweb/portafolio-app
           securityContext:
             runAsNonRoot: false
