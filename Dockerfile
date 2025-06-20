@@ -34,7 +34,7 @@ RUN npm install && npm run build
 # STAGE 3: RUNTIME - PHP 8.4 con solo lo necesario
 # ─────────────────────────────────────────────
 FROM php:8.4-fpm-alpine AS runtime
-WORKDIR /var/www
+WORKDIR /var/www/html
 
 # Instalar dependencias de sistema mínimas
 RUN apk add --no-cache libzip-dev libpng-dev zip git autoconf build-base oniguruma-dev \
