@@ -42,13 +42,14 @@ RUN apk add --no-cache libzip-dev libpng-dev zip git autoconf build-base oniguru
     && pecl install redis && docker-php-ext-enable redis
 
 # Copiar app completa desde composer
-COPY --from=composer-deps /app /var/www
+COPY --from=composer-deps /app /var/www/html
 
 # Copiar los assets compilados desde node
-COPY --from=frontend /app/public /var/www/public
+COPY --from=frontend /app/public /var/www/html/public
 
 # Permisos correctos para Laravel
-RUN chown -R www-data:www-data /var/www \
+RUN addgroup -g 1000 www-data && adduser -u 1000 -G www-data -D www-data \
+    && chown -R www-data:www-data /var/www/html \
     && find storage bootstrap/cache -type d -exec chmod 755 {} \; \
     && find storage bootstrap/cache -type f -exec chmod 644 {} \;
 

@@ -30,7 +30,7 @@ spec:
             - containerPort: 80
           volumeMounts:
             - name: laravel-code
-              mountPath: /var/www
+              mountPath: /var/www/html
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
             - name: nginx-cache

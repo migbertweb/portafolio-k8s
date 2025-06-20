@@ -33,11 +33,11 @@ spec:
                 name: laravel-secret-env
           volumeMounts:
             - name: laravel-code
-              mountPath: /var/www
+              mountPath: /var/www/html
             - name: laravel-storage
-              mountPath: /var/www/storage
+              mountPath: /var/www/html/storage
             - name: laravel-cache
-              mountPath: /var/www/bootstrap/cache
+              mountPath: /var/www/html/bootstrap/cache
           resources:
             requests:
               memory: "128Mi"
