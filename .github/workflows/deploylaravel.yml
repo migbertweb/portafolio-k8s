@@ -171,6 +171,15 @@ jobs:
         with:
           token: ${{ secrets.GH_PAT }}
 
+      # instalar las herramientas necesarias
+      - name: Setup herramientas K8s
+        uses: migbertweb/ghaction-k8s-ksops@v1
+        with:
+          ksops_version: "4.3.3"
+          sops_version: "latest"
+          age_version: "1.2.1"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
       # Actualizar tag en kustomization.yaml
       - name: Actualizar tag en kustomization.yaml
         id: kustomize_set
