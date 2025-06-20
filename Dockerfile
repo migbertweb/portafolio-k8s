@@ -34,7 +34,7 @@ RUN npm install && npm run build
 # STAGE 3: RUNTIME - PHP 8.4 con solo lo necesario
 # ─────────────────────────────────────────────
 FROM php:8.4-fpm-alpine AS runtime
-WORKDIR /var/www/html
+WORKDIR /var/www
 
 # Instalar dependencias de sistema mínimas
 RUN apk add --no-cache libzip-dev libpng-dev zip git autoconf build-base oniguruma-dev \
@@ -42,13 +42,13 @@ RUN apk add --no-cache libzip-dev libpng-dev zip git autoconf build-base oniguru
     && pecl install redis && docker-php-ext-enable redis
 
 # Copiar app completa desde composer
-COPY --from=composer-deps /app /var/www/html
+COPY --from=composer-deps /app /var/www
 
 # Copiar los assets compilados desde node
-COPY --from=frontend /app/public /var/www/html/public
+COPY --from=frontend /app/public /var/www/public
 
 # Permisos correctos para Laravel
-RUN chown -R www-data:www-data /var/www/html \
+RUN chown -R www-data:www-data /var/www \
     && find storage bootstrap/cache -type d -exec chmod 755 {} \; \
     && find storage bootstrap/cache -type f -exec chmod 644 {} \;
 

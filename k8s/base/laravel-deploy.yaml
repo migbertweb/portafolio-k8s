@@ -33,11 +33,7 @@ spec:
                 name: laravel-secret-env
           volumeMounts:
             - name: laravel-code
-              mountPath: /var/www/html
-            - name: laravel-storage
-              mountPath: /var/www/html/storage
-            - name: laravel-cache
-              mountPath: /var/www/html/bootstrap/cache
+              mountPath: /var/www
           resources:
             requests:
               memory: "128Mi"
@@ -49,7 +45,3 @@ spec:
         - name: laravel-code
           persistentVolumeClaim:
             claimName: laravel-pvc
-        - name: laravel-storage
-          emptyDir: {}
-        - name: laravel-cache
-          emptyDir: {}
