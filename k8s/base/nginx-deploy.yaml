@@ -22,9 +22,11 @@ spec:
         - name: nginx
           image: nginx:alpine
           securityContext:
-            runAsNonRoot: false
+            runAsNonRoot: true
             runAsUser: 101
-            readOnlyRootFilesystem: false
+            fsGroup: 101
+            runAsGroup: 101
+            readOnlyRootFilesystem: true
           ports:
             - containerPort: 80
           volumeMounts:
