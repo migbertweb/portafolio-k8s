@@ -45,10 +45,10 @@ RUN apk add --no-cache libzip-dev libpng-dev zip git autoconf build-base oniguru
 COPY --from=composer-deps /app /var/www
 
 # Copiar los assets compilados desde node
-COPY --from=frontend /app/public /var/www
+COPY --from=frontend /app/public /var/www/public
 
 # Permisos correctos para Laravel
-RUN chown -R www-data:www-data /var/www/public \
+RUN chown -R www-data:www-data /var/www/ \
     && find storage bootstrap/cache -type d -exec chmod 755 {} \; \
     && find storage bootstrap/cache -type f -exec chmod 644 {} \;
 

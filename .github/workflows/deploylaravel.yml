@@ -197,7 +197,21 @@ jobs:
               echo "status=failure" >> "$GITHUB_OUTPUT"
               exit 1
             fi
-      # hacer commit y push del nuevo tag
+      ###### Generar nuevo manifiesto con imagen actualizada
+      - name: Reconstruir manifiestos con nuevo tag
+        run: |
+          echo "📦 Reconstruyendo manifiestos con imagen actualizada..."
+          kustomize build --enable-alpha-plugins --enable-exec k8s/overlays/prod > kustomize-output.yaml
+
+      # Subir manifiesto actualizado
+      - name: Subir nuevo manifiesto actualizado como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: kustomize-manifests
+          path: kustomize-output.yaml
+
+      #############################
+      ####### hacer commit y push del nuevo tag
       - name: Hacer commit y push del nuevo tag
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
