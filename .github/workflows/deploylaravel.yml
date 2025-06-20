@@ -216,6 +216,7 @@ jobs:
       - name: Subir nuevo manifiesto actualizado como artefacto
         uses: actions/upload-artifact@v4
         with:
+          overwrite: true
           name: kustomize-manifests
           path: kustomize-output.yaml
 
