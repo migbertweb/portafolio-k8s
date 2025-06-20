@@ -58,5 +58,5 @@ COPY app/ ./
 # Exponer el puerto usado por PHP-FPM
 EXPOSE 9000
 
-# Comando por defecto
+# Comando por defecto #
 CMD ["php-fpm"]
