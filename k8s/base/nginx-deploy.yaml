@@ -24,7 +24,6 @@ spec:
           securityContext:
             runAsNonRoot: true
             runAsUser: 101
-            fsGroup: 101
             runAsGroup: 101
             readOnlyRootFilesystem: true
           ports:
