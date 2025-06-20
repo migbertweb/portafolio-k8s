@@ -48,8 +48,7 @@ COPY --from=composer-deps /app /var/www/html
 COPY --from=frontend /app/public /var/www/html/public
 
 # Permisos correctos para Laravel
-RUN addgroup -g 1000 www-data && adduser -u 1000 -G www-data -D www-data \
-    && chown -R www-data:www-data /var/www/html \
+RUN chown -R www-data:www-data /var/www/html \
     && find storage bootstrap/cache -type d -exec chmod 755 {} \; \
     && find storage bootstrap/cache -type f -exec chmod 644 {} \;
 
