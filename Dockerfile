@@ -49,8 +49,11 @@ COPY --from=frontend /app/public /var/www
 
 # Permisos correctos para Laravel
 RUN chown -R www-data:www-data /var/www/public \
-    && find /var/www/storage /var/www/bootstrap/cache -type d -exec chmod 755 {} \; \
-    && find /var/www/storage /var/www/bootstrap/cache -type f -exec chmod 644 {} \;
+    && find storage bootstrap/cache -type d -exec chmod 755 {} \; \
+    && find storage bootstrap/cache -type f -exec chmod 644 {} \;
+
+# Copiar el resto de la app (incluye artisan)
+COPY app/ ./
 
 # Exponer el puerto usado por PHP-FPM
 EXPOSE 9000
