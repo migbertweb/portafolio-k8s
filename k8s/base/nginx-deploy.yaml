@@ -25,7 +25,7 @@ spec:
             runAsNonRoot: true
             runAsUser: 101
             runAsGroup: 101
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: false
           ports:
             - containerPort: 80
           volumeMounts:
@@ -35,6 +35,8 @@ spec:
               mountPath: /etc/nginx/conf.d
             - name: nginx-cache
               mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /run
           resources:
             requests:
               memory: "64Mi"
@@ -51,3 +53,5 @@ spec:
             name: nginx-config
         - name: nginx-cache
           emptyDir: {} # 👈 esto crea un volumen temporal writable
+        - name: nginx-run
+          emptyDir: {}
