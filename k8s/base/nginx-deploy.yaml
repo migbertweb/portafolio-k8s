@@ -52,6 +52,6 @@ spec:
           configMap:
             name: nginx-config
         - name: nginx-cache
-          emptyDir: {} # 👈 esto crea un volumen temporal writable
+          emptyDir: {}
         - name: nginx-run
           emptyDir: {}
