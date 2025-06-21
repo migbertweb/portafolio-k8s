@@ -40,9 +40,9 @@ spec:
               memory: "128Mi"
               cpu: "100m"
       volumes:
-        - name: laravel-code
-          persistentVolumeClaim:
-            claimName: laravel-pvc
+        # - name: laravel-code
+        #   persistentVolumeClaim:
+        #     claimName: laravel-pvc
         - name: nginx-config
           configMap:
             name: nginx-config
