@@ -307,7 +307,15 @@ jobs:
   summary:
     name: Generar resumen del despliegue
     runs-on: ubuntu-latest
-    needs: [build, lint, build-docker-image, update-kustomization, deploy]
+    needs:
+      [
+        build,
+        lint,
+        build-docker-image,
+        update-kustomization,
+        deploy-k8s,
+        deploy-image,
+      ]
     if: always()
     env:
       BUILD_RESULT: ${{ needs.build.result }}
@@ -320,7 +328,8 @@ jobs:
       COMMIT: ${{ github.sha }}
       TAG: ${{ needs.build.outputs.tag }}
       START_TIME: ${{ needs.build.outputs.start_time }}
-      DEPLOY_STATUS: ${{ needs.deploy.result }}
+      DEPLOY_STATUS: ${{ needs.deploy-k8s.result }}
+      DEPLOY_IMAGE_STATUS: ${{ needs.deploy-image.result }}
     steps:
       - name: Calcular duración
         id: duracion
@@ -363,7 +372,7 @@ jobs:
             fi
           ) |"
 
-          echo "| 🔁 Deploy        | $(
+          echo "| 🔁 Deploy k8s       | $(
             if [[ \"$DEPLOY_STATUS\" == \"success\" ]]; then
               echo '✅ Aplicado'
             elif [[ \"$DEPLOY_STATUS\" == \"skipped\" ]]; then
@@ -373,6 +382,15 @@ jobs:
             fi
           ) |"
 
+          echo "| 🔁 Deploy Imagen Nueva | $(
+            if [[ \"$DEPLOY_IMAGE_STATUS\" == \"success\" ]]; then
+              echo '✅ Aplicado'
+            elif [[ \"$DEPLOY_IMAGE_STATUS\" == \"skipped\" ]]; then
+              echo '⏭️ Omitido'
+            else
+              echo '❌ Falló'
+            fi
+          ) |"
 
           echo ""
           if [ -n "$TAG" ]; then
