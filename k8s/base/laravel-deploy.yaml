@@ -37,7 +37,10 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "200m"
-      # volumes:
-      #   - name: laravel-code
-      #     persistentVolumeClaim:
-      #       claimName: laravel-pvc
+      volumes:
+        - name: laravel-code
+          emptyDir: {}
+          # Uncomment the following lines if you want to use a PersistentVolumeClaim
+          # - name: laravel-code
+          #   persistentVolumeClaim:
+          #     claimName: laravel-pvc

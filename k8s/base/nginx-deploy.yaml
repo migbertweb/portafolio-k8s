@@ -40,6 +40,8 @@ spec:
               memory: "128Mi"
               cpu: "100m"
       volumes:
+        - name: laravel-code
+          emptyDir: {}
         # - name: laravel-code
         #   persistentVolumeClaim:
         #     claimName: laravel-pvc
