@@ -3,8 +3,16 @@ kind: Deployment
 metadata:
   name: laravel-app
   namespace: portafolio
+  labels:
+    app: laravel-app
+    version: v1
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: laravel-app
@@ -12,35 +20,91 @@ spec:
     metadata:
       labels:
         app: laravel-app
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
       containers:
         - name: laravel-app
-          image: migbertweb/portafolio-app
+          image: migbertweb/portafolio-app:latest
+          imagePullPolicy: Always
           securityContext:
-            runAsNonRoot: false
-            runAsUser: 101
+            allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 9000
+              name: php-fpm
           envFrom:
             - configMapRef:
                 name: laravel-config-env
             - secretRef:
                 name: laravel-secret-env
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           volumeMounts:
-            - name: laravel-code
-              mountPath: /var/www
+            - name: laravel-storage
+              mountPath: /var/www/storage
+              subPath: ""
+            - name: laravel-bootstrap-cache
+              mountPath: /var/www/bootstrap/cache
+              subPath: ""
+            - name: laravel-tmp
+              mountPath: /tmp
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
               memory: "256Mi"
               cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 9000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
       volumes:
-        - name: laravel-code
+        - name: laravel-storage
+          persistentVolumeClaim:
+            claimName: laravel-storage-pvc
+        - name: laravel-bootstrap-cache
+          persistentVolumeClaim:
+            claimName: laravel-cache-pvc
+        - name: laravel-tmp
           emptyDir: {}
-          # Uncomment the following lines if you want to use a PersistentVolumeClaim
-          # - name: laravel-code
-          #   persistentVolumeClaim:
-          #     claimName: laravel-pvc
