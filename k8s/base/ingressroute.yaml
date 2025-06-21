@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - websecure
   routes:
-    - match: Host(`migbertweb.xyz`)
+    - match: Host(`test.migbertweb.xyz`)
       kind: Rule
       services:
         - name: laravel-nginx
