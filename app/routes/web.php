@@ -28,5 +28,5 @@ Route::middleware('auth')->group(function () {
         return view('dashboard');
     })->name('dashboard');
 });
-
+// agregado para autenticacion
 require __DIR__.'/auth.php';
