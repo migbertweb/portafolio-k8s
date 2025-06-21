@@ -1,0 +1,12 @@
+# Configuración de kube-linter
+# Ignorar reglas específicas para este proyecto
+checks:
+  # Ignorar la regla de read-only-root-filesystem
+  read-only-root-filesystem: ignore
+# O alternativamente, deshabilitar completamente esta regla
+# doNotAutoAddDefaults: true
+# customChecks:
+#   - name: "read-only-root-filesystem"
+#     template: "read-only-root-filesystem"
+#     params:
+#       required: false

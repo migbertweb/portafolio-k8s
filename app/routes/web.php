@@ -29,4 +29,4 @@ Route::middleware('auth')->group(function () {
     })->name('dashboard');
 });
 // agregado para autenticacion
-require __DIR__.'/auth.php';
+

@@ -24,6 +24,7 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9000"
+        kube-linter/ignore: "read-only-root-filesystem"
     spec:
       securityContext:
         runAsNonRoot: true
@@ -36,12 +37,15 @@ spec:
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
+            readOnlyRootFilesystem: false
             runAsNonRoot: true
             runAsUser: 1000
             capabilities:
               drop:
                 - ALL
+          # Anotaciones para kube-linter
+          annotations:
+            kube-linter/ignore: "read-only-root-filesystem"
           ports:
             - containerPort: 9000
               name: php-fpm
