@@ -28,3 +28,5 @@ Route::middleware('auth')->group(function () {
         return view('dashboard');
     })->name('dashboard');
 });
+
+require __DIR__.'/auth.php';

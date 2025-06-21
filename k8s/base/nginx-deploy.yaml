@@ -51,9 +51,12 @@ spec:
             - containerPort: 80
               name: http
           volumeMounts:
+            - name: laravel-code
+              mountPath: /var/www
+              readOnly: true
             - name: laravel-storage
               mountPath: /var/www/storage
-              readOnly: true
+              subPath: ""
             - name: nginx-config
               mountPath: /etc/nginx/conf.d
               readOnly: true
@@ -87,6 +90,8 @@ spec:
             timeoutSeconds: 3
             failureThreshold: 3
       volumes:
+        - name: laravel-code
+          emptyDir: {}
         - name: laravel-storage
           persistentVolumeClaim:
             claimName: laravel-storage-pvc
