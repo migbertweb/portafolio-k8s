@@ -1,7 +1,7 @@
 ### Stage 1: Build de dependencias y assets
 FROM php:8.3-fpm-alpine AS build
 
-# Instalar dependencias del sistema necesarias
+# Instalar dependencias del sistema necesarias para build
 RUN apk add --no-cache \
     git \
     curl \
@@ -34,11 +34,15 @@ WORKDIR /var/www
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --prefer-dist --no-scripts --no-autoloader
 
+# Copiar archivos de Node.js para construir assets
+COPY package.json package-lock.json* ./
+RUN npm ci --only=production
+
 # Copiar el resto del código fuente
 COPY . .
 
-# Instalar dependencias de Node y compilar assets
-RUN if [ -f package.json ]; then npm install && npm run build; fi
+# Construir assets de Vite
+RUN npm run build
 
 # Generar autoloader optimizado
 RUN composer dump-autoload --optimize
@@ -66,12 +70,12 @@ RUN docker-php-ext-install pdo pdo_mysql mbstring xml ctype bcmath intl
 RUN pecl install redis \
     && docker-php-ext-enable redis
 
-# Copiar archivos necesarios desde el build
+# Copiar archivos de la aplicación desde el build stage
 WORKDIR /var/www
 COPY --from=build /var/www /var/www
 COPY --from=build /usr/bin/composer /usr/bin/composer
 
-# Permisos para Laravel
+# Configurar permisos para Laravel
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 9000

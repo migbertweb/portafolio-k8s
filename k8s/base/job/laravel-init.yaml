@@ -34,6 +34,21 @@ spec:
               chmod -R 775 /var/www/storage
               chmod -R 775 /var/www/bootstrap/cache
 
+              # Verificar que los assets estén presentes
+              echo "📦 Verificando assets de Vite..."
+              if [ ! -f "/var/www/public/build/manifest.json" ]; then
+                echo "❌ Error: manifest.json no encontrado. Reconstruyendo assets..."
+                npm run build
+              fi
+
+              # Verificar archivos específicos
+              if [ ! -f "/var/www/public/build/assets/app-*.css" ] || [ ! -f "/var/www/public/build/assets/app-*.js" ]; then
+                echo "❌ Error: Assets de Vite incompletos. Reconstruyendo..."
+                npm run build
+              fi
+
+              echo "✅ Assets verificados correctamente"
+
               # Generar APP_KEY si no existe
               if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then
                 echo "🔑 Generando nueva APP_KEY..."
