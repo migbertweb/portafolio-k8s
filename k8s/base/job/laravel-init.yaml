@@ -15,7 +15,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: laravel-init
-          image: migbertweb/portafolio-app:latest
+          image: migbertweb/laravel-prueba
           command:
             - /bin/bash
             - -c
@@ -42,6 +42,19 @@ spec:
               else
                 echo "🔑 APP_KEY ya configurada"
               fi
+
+              # Esperar a que la base de datos esté disponible
+              echo "🗄️ Verificando conexión a la base de datos..."
+              until php artisan tinker --execute="DB::connection()->getPdo();" 2>/dev/null; do
+                echo "⏳ Esperando conexión a la base de datos..."
+                sleep 5
+              done
+              echo "✅ Conexión a la base de datos establecida"
+
+              # Ejecutar migraciones
+              echo "📊 Ejecutando migraciones..."
+              php artisan migrate --force
+              echo "✅ Migraciones completadas"
 
               # Limpiar cache
               php artisan cache:clear

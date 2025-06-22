@@ -18,6 +18,6 @@ generators:
   - secrets/ksops-generator.yaml
 
 images:
-  - name: migbertweb/portafolio-app
-    newName: migbertweb/portafolio-app
-    newTag: v0
+  - name: migbertweb/laravel-prueba
+    newName: migbertweb/laravel-prueba
+    newTag: latest
