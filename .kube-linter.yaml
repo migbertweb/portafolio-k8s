@@ -1,6 +1,10 @@
 # Configuración de kube-linter
 # Ignorar reglas específicas para este proyecto
 
+# Excluir archivos kustomization.yaml
+exclude:
+  - "**/kustomization.yaml"
+
 # Opción 1: Ignorar reglas específicas
 checks:
   no-read-only-root-fs: ignore

@@ -23,29 +23,14 @@ jobs:
         id: start_time
         run: echo "start_time=$(date +%s)" >> "$GITHUB_OUTPUT"
       ######### Instalacion de herramientas necesarias para K8s ##########
-      - name: Setup arkade e instalar las herramientas
-        uses: alexellis/arkade-get@master
+      - name: Setup herramientas K8s
+        uses: migbertweb/ghaction-k8s-ksops@v2
         with:
-          sops: latest
-      # Instalacion de ksops
-      - name: Instalar KSOPS
-        run: |
-          mkdir -p ~/.config/kustomize/plugin/viaduct.ai/v1/ksops
-          curl -LO https://github.com/viaduct-ai/kustomize-sops/releases/download/v4.3.3/ksops_4.3.3_Linux_x86_64.tar.gz
-          tar -xzf ksops_4.3.3_Linux_x86_64.tar.gz
-          rm ksops_4.3.3_Linux_x86_64.tar.gz
-          mv ksops ~/.config/kustomize/plugin/viaduct.ai/v1/ksops/ksops
-      # Instalar Age y configurar clave
-      - name: Instalar Age
-        run: |
-          curl -L https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz | tar xz
-          sudo mv age/age /usr/local/bin/
-          sudo mv age/age-keygen /usr/local/bin/
-      # Configurar clave privada de Age
-      - name: Configurar clave privada de Age
-        run: |
-          mkdir -p ~/.config/sops/age
-          echo "${{ secrets.SOPS_AGE_KEY }}" > ~/.config/sops/age/keys.txt
+          ksops_version: "4.3.3"
+          sops_version: "latest"
+          age_version: "1.2.1"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
 
       - name: check las herramientas
         run: |
@@ -97,6 +82,7 @@ jobs:
           release_branches: master
           pre_release_branches: dev
           tag_prefix: ${{ env.RAMA == 'master' && 'v' || 'v-dev' }}
+          append_to_pre_release_tag: d
           default_bump: patch
 
       - name: Set output del tag (sea real o vacío)
@@ -146,7 +132,7 @@ jobs:
       - name: Construir y publicar imagen multi-plataforma
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./app
           file: Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
@@ -237,7 +223,7 @@ jobs:
     name: 📦 Deploy Manifiesto al k8s
     runs-on: ubuntu-latest
     needs: [build, lint]
-    if: needs.lint.result == 'success'
+    if: needs.lint.result == 'success' && needs.build.outputs.tag == ''
     outputs:
       status: ${{ steps.k8s_apply.outputs.status }}
     steps:
@@ -271,7 +257,7 @@ jobs:
     name: 📦 Deploy Imagen Nueva al k8s
     runs-on: ubuntu-latest
     needs: [build, lint, update-kustomization]
-    if: needs.lint.result == 'success'
+    if: needs.lint.result == 'success' && needs.build.outputs.tag != ''
     outputs:
       status: ${{ steps.k8s_apply.outputs.status }}
     steps:
