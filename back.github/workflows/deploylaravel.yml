@@ -1,0 +1,406 @@
+name: CI/CD Portafolio App
+description: Deploy de la aplicación Portafolio a Kubernetes con validaciones y notificaciones
+on:
+  push:
+    branches:
+      - dev
+      - master
+env:
+  RAMA: ${{ github.ref_name }}
+jobs:
+  ############# Construcción de manifiestos con Kustomize #############
+  ############# y generación de tag semántico #############
+  build:
+    name: Construir manifiestos y generar tag
+    ### Evita que el job corra si fue ejecutado por el bot
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.set_tag.outputs.tag }}
+      start_time: ${{ steps.start_time.outputs.start_time }}
+    steps:
+      - name: Timestamp inicial
+        id: start_time
+        run: echo "start_time=$(date +%s)" >> "$GITHUB_OUTPUT"
+      ######### Instalacion de herramientas necesarias para K8s ##########
+      - name: Setup arkade e instalar las herramientas
+        uses: alexellis/arkade-get@master
+        with:
+          sops: latest
+      # Instalacion de ksops
+      - name: Instalar KSOPS
+        run: |
+          mkdir -p ~/.config/kustomize/plugin/viaduct.ai/v1/ksops
+          curl -LO https://github.com/viaduct-ai/kustomize-sops/releases/download/v4.3.3/ksops_4.3.3_Linux_x86_64.tar.gz
+          tar -xzf ksops_4.3.3_Linux_x86_64.tar.gz
+          rm ksops_4.3.3_Linux_x86_64.tar.gz
+          mv ksops ~/.config/kustomize/plugin/viaduct.ai/v1/ksops/ksops
+      # Instalar Age y configurar clave
+      - name: Instalar Age
+        run: |
+          curl -L https://github.com/FiloSottile/age/releases/download/v1.2.1/age-v1.2.1-linux-amd64.tar.gz | tar xz
+          sudo mv age/age /usr/local/bin/
+          sudo mv age/age-keygen /usr/local/bin/
+      # Configurar clave privada de Age
+      - name: Configurar clave privada de Age
+        run: |
+          mkdir -p ~/.config/sops/age
+          echo "${{ secrets.SOPS_AGE_KEY }}" > ~/.config/sops/age/keys.txt
+
+      - name: check las herramientas
+        run: |
+          echo "kubectl:" && kubectl version --client
+          echo "sops:" && sops --version
+          echo "age:" && age --version
+
+      ######### checkout el repositorio ##########
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+      # Configurar Git
+      - name: Configurar Git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+      ##############################################
+      ###### Detectar cambios en carpeta app/ ######
+      - name: Detectar cambios en carpeta app/
+        id: check_app
+        run: |
+          git fetch --depth=2 origin ${{ github.ref }}
+          if git diff --quiet HEAD^ HEAD -- app/; then
+            echo "Sin cambios en carpeta app/"
+            echo "app_changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Cambios detectados en carpeta app/"
+            echo "app_changed=true" >> $GITHUB_OUTPUT
+          fi
+      - name: Construir manifiestos con Kustomize
+        run: |
+          set -euo pipefail
+          echo "📦 Construyendo manifiestos con Kustomize..."
+          kustomize build --enable-alpha-plugins --enable-exec k8s/overlays/prod > kustomize-output.yaml
+      - name: Subir manifiestos generados como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: kustomize-manifests
+          path: kustomize-output.yaml
+          #########################################
+          ### Generacion de nuevo tag semántico ###
+      - name: Generar nuevo tag semántico
+        id: tag
+        if: steps.check_app.outputs.app_changed == 'true'
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GH_PAT }}
+          release_branches: master
+          pre_release_branches: dev
+          tag_prefix: ${{ env.RAMA == 'master' && 'v' || 'v-dev' }}
+          default_bump: patch
+
+      - name: Set output del tag (sea real o vacío)
+        id: set_tag
+        run: |
+          if [[ "${{ steps.check_app.outputs.app_changed }}" == "true" ]]; then
+            echo "tag=${{ steps.tag.outputs.new_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+  ##################################################################
+  ############# Linting de manifiestos con kube-linter #############
+  ############# y notificaciones a Telegram ########################
+  lint:
+    name: Linting de manifiestos
+    needs: build
+    uses: migbertweb/ghaction-k8s-linter/.github/workflows/lint-k8s.yml@master
+    secrets:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+
+  ###########################################################
+  ###### Creacion de imagen docker para amd64 y arm64 #######
+  build-docker-image:
+    name: Construir y publicar imagen Docker
+    runs-on: ubuntu-latest
+    needs: build
+    if: needs.build.outputs.tag != ''
+    outputs:
+      docker_tag: ${{ needs.build.outputs.tag }}
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Configurar Docker Buildx para multi-arch
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login a DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Construir y publicar imagen multi-plataforma
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/portafolio-app:${{ needs.build.outputs.tag }}
+            ${{ secrets.DOCKER_USERNAME }}/portafolio-app:${{ env.RAMA == 'master' && 'latest' || 'dev' }}
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/portafolio-app:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/portafolio-app:buildcache,mode=max
+
+  ###############################################
+  ### actualizar tag en kustomization.yaml
+  ###############################################
+  update-kustomization:
+    runs-on: ubuntu-latest
+    needs: [build, lint, build-docker-image]
+    if: needs.build.outputs.tag != ''
+    outputs:
+      kustomization_updated: ${{ steps.kustomize_set.outputs.status }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      # instalar las herramientas necesarias
+      - name: Setup herramientas K8s
+        uses: migbertweb/ghaction-k8s-ksops@v2
+        with:
+          ksops_version: "4.3.3"
+          sops_version: "latest"
+          age_version: "1.2.1"
+        env:
+          SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+      # Actualizar tag en kustomization.yaml
+      - name: Actualizar tag en kustomization.yaml
+        id: kustomize_set
+        run: |
+          set +e
+            IMAGE=${{ secrets.DOCKER_USERNAME }}/portafolio-app
+            TAG=${{ needs.build.outputs.tag }}
+
+            echo "Actualizando imagen $IMAGE con tag $TAG en kustomization.yaml"
+            cd k8s/base
+
+            if [ -z "$TAG" ]; then
+              echo "⚠️ Tag vacío. Omitiendo."
+              echo "status=skipped" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if kustomize edit set image "$IMAGE=$IMAGE:$TAG"; then
+              echo "✅ Imagen actualizada correctamente."
+              echo "status=success" >> "$GITHUB_OUTPUT"
+              exit 0
+            else
+              echo "❌ Error al actualizar imagen en kustomization.yaml."
+              echo "status=failure" >> "$GITHUB_OUTPUT"
+              exit 1
+            fi
+      ###### Generar nuevo manifiesto con imagen actualizada
+      - name: Reconstruir manifiestos con nuevo tag
+        run: |
+          echo "📦 Reconstruyendo manifiestos con imagen actualizada..."
+          kustomize build --enable-alpha-plugins --enable-exec k8s/overlays/prod > kustomize-output.yaml
+
+      # Subir manifiesto actualizado
+      - name: Subir nuevo manifiesto actualizado como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          overwrite: true
+          name: kustomize-manifests
+          path: kustomize-output.yaml
+
+      #############################
+      ####### hacer commit y push del nuevo tag
+      - name: Hacer commit y push del nuevo tag
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add k8s/base/kustomization.yaml
+          git commit -m "Portafolio: Updated image to ${{ needs.build.outputs.tag }} [skip ci]" || echo "Sin cambios para commitear"
+          git push origin HEAD:${RAMA}
+  #####################################################################
+  ############# Despliegue al clúster Kubernetes ######################
+  deploy-k8s:
+    name: 📦 Deploy Manifiesto al k8s
+    runs-on: ubuntu-latest
+    needs: [build, lint]
+    if: needs.lint.result == 'success'
+    outputs:
+      status: ${{ steps.k8s_apply.outputs.status }}
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+      - name: Descargar manifiesto generado
+        uses: actions/download-artifact@v4
+        with:
+          name: kustomize-manifests
+          path: .
+      - name: Configurar Kubeconfig
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
+      - name: Aplicar manifiesto al clúster
+        id: k8s_apply
+        env:
+          KUBECONFIG: kubeconfig.yaml
+        run: |
+          set +e
+          echo "🔁 Aplicando manifiesto kustomize-output.yaml al clúster..."
+          echo "Aplicando imagen: ${{ needs.build.outputs.tag || 'imagen sin cambios' }}"
+          if kubectl apply -f kustomize-output.yaml; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+  deploy-image:
+    name: 📦 Deploy Imagen Nueva al k8s
+    runs-on: ubuntu-latest
+    needs: [build, lint, update-kustomization]
+    if: needs.lint.result == 'success'
+    outputs:
+      status: ${{ steps.k8s_apply.outputs.status }}
+    steps:
+      - name: Checkout del repositorio
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+      - name: Descargar manifiesto generado
+        uses: actions/download-artifact@v4
+        with:
+          name: kustomize-manifests
+          path: .
+      - name: Configurar Kubeconfig
+        run: |
+          echo "${{ secrets.KUBECONFIG }}" > kubeconfig.yaml
+      - name: Aplicar manifiesto al clúster
+        id: k8s_apply
+        env:
+          KUBECONFIG: kubeconfig.yaml
+        run: |
+          set +e
+          echo "🔁 Aplicando manifiesto kustomize-output.yaml al clúster..."
+          echo "Aplicando imagen: ${{ needs.build.outputs.tag || 'imagen sin cambios' }}"
+          if kubectl apply -f kustomize-output.yaml; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failure" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+  ############## Resumen del despliegue ############################
+  ############## Mostrar resultados en la UI de GitHub #############
+  summary:
+    name: Generar resumen del despliegue
+    runs-on: ubuntu-latest
+    needs:
+      [
+        build,
+        lint,
+        build-docker-image,
+        update-kustomization,
+        deploy-k8s,
+        deploy-image,
+      ]
+    if: always()
+    env:
+      BUILD_RESULT: ${{ needs.build.result }}
+      LINT_RESULT: ${{ needs.lint.result }}
+      DOCKER_RESULT: ${{ needs.build-docker-image.result }}
+      DOCKER_TAG: ${{ needs['build-docker-image'].outputs.docker_tag }}
+      KUSTOMIZE_STATUS: ${{ needs.update-kustomization.result }}
+      REPO: ${{ github.repository }}
+      BRANCH: ${{ github.ref_name }}
+      COMMIT: ${{ github.sha }}
+      TAG: ${{ needs.build.outputs.tag }}
+      START_TIME: ${{ needs.build.outputs.start_time }}
+      DEPLOY_STATUS: ${{ needs.deploy-k8s.result }}
+      DEPLOY_IMAGE_STATUS: ${{ needs.deploy-image.result }}
+    steps:
+      - name: Calcular duración
+        id: duracion
+        run: |
+          END_TIME=$(date +%s)
+          if [ -n "$START_TIME" ]; then
+            DURATION=$((END_TIME - START_TIME))
+            MIN=$((DURATION / 60))
+            SEC=$((DURATION % 60))
+            echo "duration=${MIN}m ${SEC}s" >> "$GITHUB_OUTPUT"
+          else
+            echo "duration=No disponible" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Mostrar resumen en la UI
+        run: |
+          {
+          echo "### 🔀 CI/CD Portafolio App - DEV"
+          echo ""
+          echo "| Paso            | Estado              |"
+          echo "|-----------------|---------------------|"
+          echo "| 🔨 Build        | $([[ \"$BUILD_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
+          echo "| 🔍 Linter       | $([[ \"$LINT_RESULT\" == \"success\" ]] && echo '✅ Éxito' || echo '❌ Falló') |"
+
+          if [[ "$DOCKER_RESULT" == "success" && -n "$DOCKER_TAG" ]]; then
+            echo "| 📦 Docker Build | ✅ Imagen publicada |"
+          elif [[ "$DOCKER_RESULT" == "skipped" ]]; then
+            echo "| 📦 Docker Build | ⏭️ Omitido (sin cambios) |"
+          else
+            echo "| 📦 Docker Build | ❌ Falló o sin tag |"
+          fi
+
+          echo "| 🧩 Kustomization | $(
+            if [[ \"$KUSTOMIZE_STATUS\" == \"success\" ]]; then
+              echo '✅ Actualizado'
+            elif [[ \"$KUSTOMIZE_STATUS\" == \"skipped\" ]]; then
+              echo '⏭️ Omitido'
+            else
+              echo '❌ Falló'
+            fi
+          ) |"
+
+          echo "| 🔁 Deploy k8s       | $(
+            if [[ \"$DEPLOY_STATUS\" == \"success\" ]]; then
+              echo '✅ Aplicado'
+            elif [[ \"$DEPLOY_STATUS\" == \"skipped\" ]]; then
+              echo '⏭️ Omitido'
+            else
+              echo '❌ Falló'
+            fi
+          ) |"
+
+          echo "| 🔁 Deploy Imagen Nueva | $(
+            if [[ \"$DEPLOY_IMAGE_STATUS\" == \"success\" ]]; then
+              echo '✅ Aplicado'
+            elif [[ \"$DEPLOY_IMAGE_STATUS\" == \"skipped\" ]]; then
+              echo '⏭️ Omitido'
+            else
+              echo '❌ Falló'
+            fi
+          ) |"
+
+          echo ""
+          if [ -n "$TAG" ]; then
+            echo "- 🏷 *Tag generado:* \`$TAG\`"
+          else
+            echo "- 🏷 *Tag generado:* Ninguno"
+          fi
+          echo "- 📄 *Archivo:* \`kustomize-output.yaml\`"
+          echo "- 🌱 *Branch:* \`${BRANCH}\`"
+          echo "- 📦 *Repo:* \`${REPO}\`"
+          echo "- 🔗 [Ver commit](https://github.com/${REPO}/commit/${COMMIT})"
+          echo "- ⏱ *Duración:* ${{ steps.duracion.outputs.duration }}"
+          } >> "$GITHUB_STEP_SUMMARY"

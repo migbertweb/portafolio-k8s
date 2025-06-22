@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - middlewares/rate-limit.yaml
+  - middlewares/secure-headers.yaml
+  - laravel-config-env.yaml
+  - nginx-config.yaml
+  - pvc-laravel.yaml
+  # - nginx-deploy.yaml  # Comentado porque ahora es sidecar
+  - laravel-deploy.yaml
+  - service-nginx.yaml
+  - service-php-fpm.yaml
+  - ingressroute.yaml
+  - hpa.yaml
+# - job/laravel-init.yaml
+
+generators:
+  - secrets/ksops-generator.yaml
+
+images:
+  - name: migbertweb/portafolio-app
+    newName: migbertweb/portafolio-app
+    newTag: v-dev0.0.1-dev.20

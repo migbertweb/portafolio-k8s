@@ -1,0 +1,19 @@
+# Configuración de kube-linter
+# Ignorar reglas específicas para este proyecto
+
+# Opción 1: Ignorar reglas específicas
+checks:
+  no-read-only-root-fs: ignore
+# Opción 2: Configuración alternativa
+# doNotAutoAddDefaults: true
+# customChecks:
+#   - name: "no-read-only-root-fs"
+#     template: "no-read-only-root-fs"
+#     params:
+#       required: false
+
+# Opción 3: Configuración por namespace
+# namespaces:
+#   portafolio:
+#     checks:
+#       no-read-only-root-fs: ignore

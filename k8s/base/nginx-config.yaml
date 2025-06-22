@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: portafolio
+  labels:
+    app: laravel-nginx
+data:
+  default.conf: |
+    # Configuración de upstream para PHP-FPM
+    upstream php-fpm {
+        server localhost:9000;
+        keepalive 32;
+    }
+
+    # Configuración principal del servidor
+    server {
+        listen 80;
+        server_name _;
+        
+        # Configuración de seguridad
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "no-referrer-when-downgrade" always;
+        add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+        
+        # Configuración de logs
+        access_log /var/log/nginx/access.log;
+        error_log /var/log/nginx/error.log warn;
+        
+        # Document root
+        root /var/www/public;
+        index index.php index.html;
+        
+        # Configuración de gzip
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_proxied expired no-cache no-store private auth;
+        gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/javascript;
+        
+        # Configuración de cache para assets estáticos
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+            access_log off;
+        }
+        
+        # Configuración de cache para Laravel
+        location ~* \.(?:css|js)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+            access_log off;
+        }
+        
+        # Health check endpoint
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+        
+        # Configuración principal de Laravel
+        location / {
+            try_files $uri $uri/ /index.php?$query_string;
+        }
+        
+        # Configuración de PHP-FPM
+        location ~ \.php$ {
+            fastcgi_pass php-fpm;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            include fastcgi_params;
+            
+            # Configuración de timeout
+            fastcgi_read_timeout 300;
+            fastcgi_connect_timeout 300;
+            fastcgi_send_timeout 300;
+            
+            # Configuración de buffer
+            fastcgi_buffer_size 128k;
+            fastcgi_buffers 4 256k;
+            fastcgi_busy_buffers_size 256k;
+        }
+        
+        # Denegar acceso a archivos sensibles
+        location ~ /\. {
+            deny all;
+        }
+        
+        location ~ /\.ht {
+            deny all;
+        }
+        
+        location ~ /\.env {
+            deny all;
+        }
+        
+        location ~ /\.git {
+            deny all;
+        }
+        
+        # Configuración de error pages
+        error_page 404 /index.php;
+        error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+            root /usr/share/nginx/html;
+        }
+    }
