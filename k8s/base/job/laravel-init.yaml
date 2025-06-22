@@ -23,9 +23,22 @@ spec:
               set -e
               echo "🔧 Ejecutando migraciones de Laravel..."
 
-              # Esperar a que la base de datos esté disponible
+              # Esperar a que la base de datos esté disponible usando un método simple
               echo "🗄️ Verificando conexión a la base de datos..."
-              until php artisan tinker --execute="DB::connection()->getPdo();" 2>/dev/null; do
+              until php -r "
+                try {
+                    \$pdo = new PDO(
+                        'mysql:host=' . getenv('DB_HOST') . ';port=' . getenv('DB_PORT') . ';dbname=' . getenv('DB_DATABASE'),
+                        getenv('DB_USERNAME'),
+                        getenv('DB_PASSWORD'),
+                        [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+                    );
+                    echo 'Database connection successful';
+                    exit(0);
+                } catch (Exception \$e) {
+                    exit(1);
+                }
+              " 2>/dev/null; do
                 echo "⏳ Esperando conexión a la base de datos..."
                 sleep 5
               done

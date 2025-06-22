@@ -73,7 +73,20 @@ init_laravel() {
 # Función para esperar base de datos
 wait_for_database() {
     echo "🗄️ Verificando conexión a la base de datos..."
-    until php artisan tinker --execute="DB::connection()->getPdo();" 2>/dev/null; do
+    until php -r "
+        try {
+            \$pdo = new PDO(
+                'mysql:host=' . getenv('DB_HOST') . ';port=' . getenv('DB_PORT') . ';dbname=' . getenv('DB_DATABASE'),
+                getenv('DB_USERNAME'),
+                getenv('DB_PASSWORD'),
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
+            echo 'Database connection successful';
+            exit(0);
+        } catch (Exception \$e) {
+            exit(1);
+        }
+    " 2>/dev/null; do
         echo "⏳ Esperando conexión a la base de datos..."
         sleep 5
     done
