@@ -4,33 +4,46 @@ metadata:
   name: laravel-config-env
   namespace: portafolio
 data:
-  APP_NAME: Migbertweb
-  APP_ENV: production
+  # Configuración básica de la aplicación
+  APP_NAME: "Migbertweb"
+  APP_ENV: "production"
   APP_DEBUG: "false"
-  APP_URL: http://localhost
-  #
-  LOG_CHANNEL: stack
-  LOG_LEVEL: info
+  APP_URL: "https://test.migbertweb.xyz"
 
-  DB_CONNECTION: mysql
-  DB_HOST: mariadb-service.mysql-ns.svc.cluster.local
+  # Configuración de logs
+  LOG_CHANNEL: "stack"
+  LOG_LEVEL: "info"
+  LOG_DEPRECATIONS_CHANNEL: "null"
+
+  # Configuración de base de datos
+  DB_CONNECTION: "mysql"
+  DB_HOST: "mariadb-service.mysql-ns.svc.cluster.local"
   DB_PORT: "3306"
-  DB_DATABASE: laravel_db
-  DB_CHARSET: utf8mb4
-  DB_COLLATION: utf8mb4_unicode_ci
+  DB_DATABASE: "laravel_db"
+  DB_CHARSET: "utf8mb4"
+  DB_COLLATION: "utf8mb4_unicode_ci"
 
-  REDIS_HOST: redis
+  # Configuración de Redis
+  REDIS_HOST: "redis-service.redis.svc.cluster.local"
   REDIS_PORT: "6379"
   REDIS_USERNAME: ""
   REDIS_DB: "0"
   REDIS_CACHE_DB: "1"
-  CACHE_DRIVER: redis
-  SESSION_DRIVER: redis
-  QUEUE_CONNECTION: redis
 
   # Configuración de cache y session
-  CACHE_STORE: redis
-  SESSION_STORE: redis
+  CACHE_DRIVER: "redis"
+  SESSION_DRIVER: "redis"
+  SESSION_LIFETIME: "120"
+  QUEUE_CONNECTION: "redis"
 
   # Configuración de vistas
-  VIEW_COMPILED_PATH: /var/www/storage/framework/views
+  VIEW_COMPILED_PATH: "/var/www/storage/framework/views"
+
+  # Configuración de archivos
+  FILESYSTEM_DISK: "local"
+
+  # Configuración de broadcasting (opcional)
+  BROADCAST_DRIVER: "log"
+
+  # Configuración de mail (opcional)
+  MAIL_MAILER: "log"

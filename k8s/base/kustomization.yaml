@@ -12,6 +12,7 @@ resources:
   - service.yaml
   - ingressroute.yaml
   - hpa.yaml
+  - job/laravel-init.yaml
 
 generators:
   - secrets/ksops-generator.yaml

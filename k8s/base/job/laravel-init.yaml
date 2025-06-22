@@ -1,0 +1,79 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: laravel-init
+  namespace: portafolio
+  labels:
+    app: laravel-app
+spec:
+  template:
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: laravel-init
+          image: migbertweb/portafolio-app:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "🔧 Inicializando Laravel..."
+
+              # Crear directorios necesarios
+              mkdir -p /var/www/storage/framework/{cache,sessions,views}
+              mkdir -p /var/www/storage/logs
+              mkdir -p /var/www/bootstrap/cache
+
+              # Configurar permisos
+              chown -R www-data:www-data /var/www/storage
+              chown -R www-data:www-data /var/www/bootstrap/cache
+              chmod -R 775 /var/www/storage
+              chmod -R 775 /var/www/bootstrap/cache
+
+              # Generar APP_KEY si no existe
+              if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "" ]; then
+                echo "🔑 Generando nueva APP_KEY..."
+                php artisan key:generate --force
+                echo "✅ APP_KEY generada correctamente"
+              else
+                echo "🔑 APP_KEY ya configurada"
+              fi
+
+              # Limpiar cache
+              php artisan cache:clear
+              php artisan config:clear
+              php artisan route:clear
+              php artisan view:clear
+
+              # Optimizar para producción
+              php artisan config:cache
+              php artisan route:cache
+              php artisan view:cache
+
+              echo "✅ Laravel inicializado correctamente"
+          envFrom:
+            - configMapRef:
+                name: laravel-config-env
+            - secretRef:
+                name: laravel-secret-env
+          volumeMounts:
+            - name: laravel-storage
+              mountPath: /var/www/storage
+              subPath: ""
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+      volumes:
+        - name: laravel-storage
+          persistentVolumeClaim:
+            claimName: laravel-storage-pvc
+      restartPolicy: Never
+  backoffLimit: 3

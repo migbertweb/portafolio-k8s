@@ -66,18 +66,6 @@ spec:
             - name: laravel-storage
               mountPath: /var/www/storage
               subPath: ""
-            - name: laravel-bootstrap-cache
-              mountPath: /var/www/bootstrap/cache
-              subPath: ""
-            - name: laravel-framework-cache
-              mountPath: /var/www/storage/framework/cache
-              subPath: ""
-            - name: laravel-framework-views
-              mountPath: /var/www/storage/framework/views
-              subPath: ""
-            - name: laravel-framework-sessions
-              mountPath: /var/www/storage/framework/sessions
-              subPath: ""
             - name: laravel-tmp
               mountPath: /tmp
           resources:
@@ -167,18 +155,6 @@ spec:
         - name: laravel-storage
           persistentVolumeClaim:
             claimName: laravel-storage-pvc
-        - name: laravel-bootstrap-cache
-          persistentVolumeClaim:
-            claimName: laravel-cache-pvc
-        - name: laravel-framework-cache
-          persistentVolumeClaim:
-            claimName: laravel-cache-pvc
-        - name: laravel-framework-views
-          persistentVolumeClaim:
-            claimName: laravel-cache-pvc
-        - name: laravel-framework-sessions
-          persistentVolumeClaim:
-            claimName: laravel-cache-pvc
         - name: nginx-config
           configMap:
             name: nginx-config
