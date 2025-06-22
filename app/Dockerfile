@@ -47,6 +47,14 @@ RUN npm run build
 # Generar autoloader optimizado
 RUN composer dump-autoload --optimize
 
+# Crear directorios necesarios y configurar permisos
+RUN mkdir -p /var/www/storage/framework/{cache,sessions,views} \
+    && mkdir -p /var/www/storage/logs \
+    && mkdir -p /var/www/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/storage \
+    && chown -R www-data:www-data /var/www/bootstrap/cache \
+    && chmod -R 775 /var/www/storage \
+    && chmod -R 775 /var/www/bootstrap/cache
 
 ### Stage 2: Imagen final ligera
 FROM php:8.3-fpm-alpine
@@ -75,8 +83,15 @@ WORKDIR /var/www
 COPY --from=build /var/www /var/www
 COPY --from=build /usr/bin/composer /usr/bin/composer
 
+# Copiar y configurar script de entrada
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Configurar permisos para Laravel
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 9000
+
+# Usar el script de entrada
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["php-fpm"] 
