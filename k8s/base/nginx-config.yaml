@@ -80,21 +80,6 @@ data:
             return 200 "healthy\n";
             add_header Content-Type text/plain;
         }
-        location / {
-          if ($REQUEST_METHOD = 'OPTIONS') {
-            # add CORS headers
-            add_header 'Access-Control-Allow-Origin' '$http_origin';
-            add_header 'Access-Control-Allow-Methods' 'POST, GET, DELETE, PUT, PATCH, OPTIONS';
-            add_header 'Access-Control-Allow-Headers' 'Origin, Authorization, Accept, Content-Type, X-Request-With, X-XSRF-TOKEN';
-            add_header 'Access-Control-Allow-Credentials' 'true';
-
-            # Make this preflight request valid for 20 days
-            add_header 'Access-Control-Max-Age' 1728000;
-            add_header 'Content-Type' 'text/plain; charset=utf-8';
-            add_header 'Content-Length' 0;
-            return 204;
-          }
-          }
         # Configuración principal de Laravel (debe ir AL FINAL)
         location / {
             try_files $uri $uri/ /index.php?$query_string;
