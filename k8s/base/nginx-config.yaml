@@ -94,6 +94,7 @@ data:
             add_header 'Content-Length' 0;
             return 204;
           }
+          }
         # Configuración principal de Laravel (debe ir AL FINAL)
         location / {
             try_files $uri $uri/ /index.php?$query_string;
