@@ -23,10 +23,7 @@ data:
         add_header X-XSS-Protection "1; mode=block" always;
         add_header X-Content-Type-Options "nosniff" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
-        # CSP relajada para desarrollo (ajustar para producción)
-        add_header Content-Security-Policy "default-src 'self' https://test.migbertweb.xyz; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://test.migbertweb.xyz https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://test.migbertweb.xyz https://fonts.bunny.net; font-src 'self' https://fonts.bunny.net; img-src 'self' data: blob: https://test.migbertweb.xyz; connect-src 'self' ws://test.migbertweb.xyz wss://test.migbertweb.xyz https://test.migbertweb.xyz; frame-src 'self'; object-src 'none';";
-
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://test.migbertweb.xyz; style-src 'self' 'unsafe-inline' https://fonts.bunny.net https://test.migbertweb.xyz; font-src 'self' https://fonts.bunny.net; img-src 'self' data: https:; connect-src 'self' https://test.migbertweb.xyz; worker-src 'self' blob:;" always;
         
         # Configuración de logs
         access_log /var/log/nginx/access.log;
@@ -52,13 +49,30 @@ data:
             application/json
             application/xml;
         
-        # Configuración de cache para assets estáticos
-        # location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|webp)$ {
-        #     expires 1y;
-        #     add_header Cache-Control "public, immutable";
-        #     access_log off;
-        #     try_files $uri =404;
-        # }
+        # Configuración específica para assets de Vite (debe ir ANTES de la regla general)
+        location /build/ {
+            try_files $uri =404;
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+            access_log off;
+            
+            # Configurar MIME types específicos para Vite
+            location ~* \.css$ {
+                add_header Content-Type "text/css";
+            }
+            
+            location ~* \.js$ {
+                add_header Content-Type "application/javascript";
+            }
+        }
+        
+        # Configuración de cache para assets estáticos (debe ir DESPUÉS de /build/)
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|webp)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+            access_log off;
+            try_files $uri =404;
+        }
         
         # Health check endpoint
         location /health {
@@ -67,7 +81,7 @@ data:
             add_header Content-Type text/plain;
         }
         
-        # Configuración principal de Laravel
+        # Configuración principal de Laravel (debe ir AL FINAL)
         location / {
             try_files $uri $uri/ /index.php?$query_string;
         }

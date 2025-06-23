@@ -58,12 +58,21 @@ fix_directory_permissions "/var/www/storage" "www-data" "www-data" "775" "true"
 # Verificar permisos específicos
 echo "🔍 Verificando permisos críticos..."
 
-# Verificar bootstrap/cache (local)
+# Verificar bootstrap/cache (local) - más agresivo
 if [ -w "/var/www/bootstrap/cache" ]; then
     echo "✅ /var/www/bootstrap/cache es escribible"
 else
     echo "❌ /var/www/bootstrap/cache NO es escribible"
-    chmod 775 /var/www/bootstrap/cache 2>/dev/null || true
+    echo "🔧 Intentando corrección agresiva..."
+    chmod -R 775 /var/www/bootstrap/cache 2>/dev/null || true
+    chown -R www-data:www-data /var/www/bootstrap/cache 2>/dev/null || true
+    
+    # Verificar nuevamente
+    if [ -w "/var/www/bootstrap/cache" ]; then
+        echo "✅ /var/www/bootstrap/cache ahora es escribible"
+    else
+        echo "⚠️ /var/www/bootstrap/cache aún no es escribible (puede causar problemas)"
+    fi
 fi
 
 # Verificar directorios en PVC

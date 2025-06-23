@@ -59,7 +59,7 @@ RUN mkdir -p /var/www/storage/framework/{cache,sessions,views} \
 ### Stage 2: Imagen final ligera
 FROM php:8.3-fpm-alpine
 
-# Instalar solo las dependencias mínimas necesarias
+# Instalar dependencias mínimas necesarias + Node.js y npm
 RUN apk add --no-cache \
     libpng-dev \
     libjpeg-turbo-dev \
@@ -71,7 +71,9 @@ RUN apk add --no-cache \
     autoconf \
     g++ \
     make \
-    bash
+    bash \
+    nodejs \
+    npm
 
 # Instalar extensiones PHP necesarias para Laravel y Redis
 RUN docker-php-ext-install pdo pdo_mysql mbstring xml ctype bcmath intl

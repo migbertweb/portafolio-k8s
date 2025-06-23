@@ -78,16 +78,72 @@ setup_permissions() {
 check_assets() {
     echo "📦 Verificando assets de Vite..."
     
+    # Verificar que npm esté disponible
+    if ! command -v npm &> /dev/null; then
+        echo "⚠️ npm no está disponible. Verificando assets existentes..."
+        # Si npm no está disponible, solo verificar que los assets existan
+        if [ -f "/var/www/public/build/manifest.json" ]; then
+            echo "✅ manifest.json encontrado"
+            
+            # Verificar que haya archivos CSS y JS
+            css_files=$(find /var/www/public/build -name "*.css" 2>/dev/null | wc -l)
+            js_files=$(find /var/www/public/build -name "*.js" 2>/dev/null | wc -l)
+            
+            if [ "$css_files" -gt 0 ] && [ "$js_files" -gt 0 ]; then
+                echo "✅ Assets de Vite encontrados (CSS: $css_files, JS: $js_files)"
+                echo "✅ Assets verificados correctamente"
+                return 0
+            else
+                echo "❌ Assets incompletos pero npm no disponible. Continuando..."
+                return 0
+            fi
+        else
+            echo "❌ No se encontraron assets y npm no está disponible. Continuando..."
+            return 0
+        fi
+    fi
+    
+    # Verificar que el directorio build existe
+    if [ ! -d "/var/www/public/build" ]; then
+        echo "❌ Directorio build no existe. Creando..."
+        mkdir -p /var/www/public/build
+    fi
+    
+    # Verificar manifest.json
     if [ ! -f "/var/www/public/build/manifest.json" ]; then
         echo "❌ manifest.json no encontrado. Reconstruyendo assets..."
         npm run build
+    else
+        echo "✅ manifest.json encontrado"
     fi
     
-    # Verificar que existan archivos CSS y JS
-    if ! ls /var/www/public/build/assets/app-*.css >/dev/null 2>&1 || ! ls /var/www/public/build/assets/app-*.js >/dev/null 2>&1; then
-        echo "❌ Assets de Vite incompletos. Reconstruyendo..."
+    # Verificar archivos CSS y JS específicos
+    css_files=$(find /var/www/public/build -name "*.css" 2>/dev/null | wc -l)
+    js_files=$(find /var/www/public/build -name "*.js" 2>/dev/null | wc -l)
+    
+    if [ "$css_files" -eq 0 ] || [ "$js_files" -eq 0 ]; then
+        echo "❌ Assets de Vite incompletos (CSS: $css_files, JS: $js_files). Reconstruyendo..."
         npm run build
+    else
+        echo "✅ Assets de Vite encontrados (CSS: $css_files, JS: $js_files)"
     fi
+    
+    # Verificar que los archivos no estén vacíos
+    for file in /var/www/public/build/assets/*.css; do
+        if [ -f "$file" ] && [ ! -s "$file" ]; then
+            echo "❌ Archivo CSS vacío: $file. Reconstruyendo..."
+            npm run build
+            break
+        fi
+    done
+    
+    for file in /var/www/public/build/assets/*.js; do
+        if [ -f "$file" ] && [ ! -s "$file" ]; then
+            echo "❌ Archivo JS vacío: $file. Reconstruyendo..."
+            npm run build
+            break
+        fi
+    done
     
     echo "✅ Assets verificados correctamente"
 }
@@ -104,6 +160,10 @@ init_laravel() {
     else
         echo "🔑 APP_KEY ya configurada"
     fi
+    
+    # Activar Flux si no está activado
+    echo "🎨 Activando Flux..."
+    php artisan flux:activate || echo "⚠️ Flux ya está activado o no se pudo activar"
     
     # Limpiar cache con manejo de errores
     echo "🧹 Limpiando cache..."
