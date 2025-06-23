@@ -12,15 +12,64 @@ setup_permissions() {
     mkdir -p /var/www/storage/logs 2>/dev/null || true
     mkdir -p /var/www/bootstrap/cache 2>/dev/null || true
     
-    # Intentar cambiar permisos de forma segura
+    echo "📁 Configurando permisos para directorios locales (no PVC)..."
+    # Configurar permisos para directorios locales (no PVC)
+    chmod -R 775 /var/www/bootstrap/cache 2>/dev/null || true
+    chown -R www-data:www-data /var/www/bootstrap/cache 2>/dev/null || {
+        echo "⚠️ Usando método alternativo para bootstrap/cache..."
+        find /var/www/bootstrap/cache -type d -exec chmod 775 {} \; 2>/dev/null || true
+        find /var/www/bootstrap/cache -type f -exec chmod 664 {} \; 2>/dev/null || true
+    }
+    
+    echo "📁 Configurando permisos para PVC de storage..."
+    # Para el PVC de storage, ser más cuidadoso con los permisos existentes
+    # Solo cambiar permisos si es necesario, no propietario
     find /var/www/storage -type d -exec chmod 775 {} \; 2>/dev/null || true
     find /var/www/storage -type f -exec chmod 664 {} \; 2>/dev/null || true
-    find /var/www/bootstrap/cache -type d -exec chmod 775 {} \; 2>/dev/null || true
-    find /var/www/bootstrap/cache -type f -exec chmod 664 {} \; 2>/dev/null || true
     
-    # Intentar cambiar propietario de forma segura
-    chown -R www-data:www-data /var/www/storage 2>/dev/null || echo "⚠️ No se pudieron cambiar todos los propietarios de storage"
-    chown -R www-data:www-data /var/www/bootstrap/cache 2>/dev/null || echo "⚠️ No se pudieron cambiar todos los propietarios de bootstrap/cache"
+    # Intentar cambiar propietario solo para archivos nuevos o si es posible
+    echo "👤 Intentando cambiar propietario de archivos en PVC..."
+    chown -R www-data:www-data /var/www/storage 2>/dev/null || {
+        echo "⚠️ No se pudieron cambiar todos los propietarios del PVC (normal en volúmenes persistentes)"
+        echo "ℹ️ Los archivos existentes mantendrán su propietario original"
+    }
+    
+    # Verificar que los directorios críticos sean escribibles
+    echo "🔍 Verificando permisos de escritura..."
+    
+    if [ ! -w "/var/www/bootstrap/cache" ]; then
+        echo "❌ Error: /var/www/bootstrap/cache no es escribible"
+        chmod 775 /var/www/bootstrap/cache 2>/dev/null || true
+    else
+        echo "✅ /var/www/bootstrap/cache es escribible"
+    fi
+    
+    if [ ! -w "/var/www/storage/framework/cache" ]; then
+        echo "❌ Error: /var/www/storage/framework/cache no es escribible"
+        chmod 775 /var/www/storage/framework/cache 2>/dev/null || true
+    else
+        echo "✅ /var/www/storage/framework/cache es escribible"
+    fi
+    
+    if [ ! -w "/var/www/storage/framework/sessions" ]; then
+        echo "❌ Error: /var/www/storage/framework/sessions no es escribible"
+        chmod 775 /var/www/storage/framework/sessions 2>/dev/null || true
+    else
+        echo "✅ /var/www/storage/framework/sessions es escribible"
+    fi
+    
+    if [ ! -w "/var/www/storage/framework/views" ]; then
+        echo "❌ Error: /var/www/storage/framework/views no es escribible"
+        chmod 775 /var/www/storage/framework/views 2>/dev/null || true
+    else
+        echo "✅ /var/www/storage/framework/views es escribible"
+    fi
+    
+    # Ejecutar script adicional de verificación de permisos
+    if [ -f "/var/www/fix-permissions.sh" ]; then
+        echo "🔧 Ejecutando verificación adicional de permisos..."
+        bash /var/www/fix-permissions.sh
+    fi
     
     echo "✅ Permisos configurados"
 }
@@ -56,16 +105,18 @@ init_laravel() {
         echo "🔑 APP_KEY ya configurada"
     fi
     
-    # Limpiar cache
-    php artisan cache:clear
-    php artisan config:clear
-    php artisan route:clear
-    php artisan view:clear
+    # Limpiar cache con manejo de errores
+    echo "🧹 Limpiando cache..."
+    php artisan cache:clear || echo "⚠️ Error al limpiar cache"
+    php artisan config:clear || echo "⚠️ Error al limpiar config"
+    php artisan route:clear || echo "⚠️ Error al limpiar routes"
+    php artisan view:clear || echo "⚠️ Error al limpiar views"
     
-    # Optimizar para producción
-    php artisan config:cache
-    php artisan route:cache
-    php artisan view:cache
+    # Optimizar para producción con manejo de errores
+    echo "⚡ Optimizando para producción..."
+    php artisan config:cache || echo "⚠️ Error al cachear config"
+    php artisan route:cache || echo "⚠️ Error al cachear routes"
+    php artisan view:cache || echo "⚠️ Error al cachear views"
     
     echo "✅ Laravel inicializado"
 }

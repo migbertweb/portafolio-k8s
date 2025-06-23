@@ -83,12 +83,17 @@ WORKDIR /var/www
 COPY --from=build /var/www /var/www
 COPY --from=build /usr/bin/composer /usr/bin/composer
 
-# Copiar y configurar script de entrada
+# Copiar y configurar scripts
 COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY fix-permissions.sh /var/www/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /var/www/fix-permissions.sh
 
-# Configurar permisos para Laravel
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+# Configurar permisos para Laravel de forma más agresiva
+RUN chown -R www-data:www-data /var/www \
+    && chmod -R 775 /var/www/storage \
+    && chmod -R 775 /var/www/bootstrap/cache \
+    && chmod -R 775 /var/www/public/build
 
 EXPOSE 9000
 
