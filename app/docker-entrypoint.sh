@@ -78,6 +78,10 @@ setup_permissions() {
 check_assets() {
     echo "📦 Verificando assets de Vite..."
     
+    # Asegurar permisos correctos en /var/www/public/build
+    chown -R www-data:www-data /var/www/public/build 2>/dev/null || true
+    chmod -R 775 /var/www/public/build 2>/dev/null || true
+    
     # Verificar que npm esté disponible
     if ! command -v npm &> /dev/null; then
         echo "⚠️ npm no está disponible. Verificando assets existentes..."

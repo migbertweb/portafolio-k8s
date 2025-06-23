@@ -89,7 +89,10 @@ COPY --from=build /usr/bin/composer /usr/bin/composer
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY fix-permissions.sh /var/www/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
-    && chmod +x /var/www/fix-permissions.sh
+    && chmod +x /var/www/fix-permissions.sh \
+    && mkdir -p /var/www/public/build \
+    && chown -R www-data:www-data /var/www/public/build \
+    && chmod -R 775 /var/www/public/build
 
 # Configurar permisos para Laravel de forma más agresiva
 RUN chown -R www-data:www-data /var/www \
