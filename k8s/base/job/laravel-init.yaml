@@ -10,9 +10,9 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
       containers:
         - name: laravel-init
           image: migbertweb/laravel-prueba
@@ -21,10 +21,10 @@ spec:
             - -c
             - |
               set -e
-              echo "🔧 Ejecutando migraciones de Laravel..."
+              echo "=== Iniciando preparación para producción ==="
 
               # Esperar a que la base de datos esté disponible usando un método simple
-              echo "🗄️ Verificando conexión a la base de datos..."
+              echo "[INFO] Verificando conexión a la base de datos..."
               until php -r "
                 try {
                     \$pdo = new PDO(
@@ -39,17 +39,40 @@ spec:
                     exit(1);
                 }
               " 2>/dev/null; do
-                echo "⏳ Esperando conexión a la base de datos..."
+                echo "[WAIT] Esperando conexión a la base de datos..."
                 sleep 5
               done
-              echo "✅ Conexión a la base de datos establecida"
+              echo "[OK] Conexión a la base de datos establecida"
 
               # Ejecutar migraciones
-              echo "📊 Ejecutando migraciones..."
+              echo "[INFO] Ejecutando migraciones..."
               php artisan migrate --force
-              echo "✅ Migraciones completadas"
+              echo "[OK] Migraciones completadas"
 
-              echo "✅ Inicialización completada"
+              # Instalar dependencias de Node.js
+              echo "[INFO] Instalando dependencias de Node.js..."
+              npm ci --only=production
+              echo "[OK] Dependencias de Node.js instaladas"
+
+              # Build de assets para producción
+              echo "[INFO] Construyendo assets para producción..."
+              npm run build
+              echo "[OK] Assets construidos para producción"
+
+              # Optimización de Laravel
+              echo "[INFO] Optimizando Laravel..."
+              php artisan optimize
+              php artisan config:cache
+              php artisan route:cache
+              php artisan view:cache
+              echo "[OK] Laravel optimizado"
+
+              # Limpiar archivos temporales
+              echo "[INFO] Limpiando archivos temporales..."
+              rm -rf node_modules
+              echo "[OK] Limpieza completada"
+
+              echo "=== Preparación para producción completada exitosamente ==="
           envFrom:
             - configMapRef:
                 name: laravel-config-env
@@ -61,11 +84,11 @@ spec:
               subPath: ""
           resources:
             requests:
-              memory: "256Mi"
-              cpu: "200m"
-            limits:
               memory: "512Mi"
-              cpu: "500m"
+              cpu: "300m"
+            limits:
+              memory: "1Gi"
+              cpu: "800m"
       volumes:
         - name: laravel-storage
           persistentVolumeClaim:
