@@ -44,6 +44,17 @@ COPY . .
 # Construir assets de Vite
 RUN npm run build
 
+# Verificar que el build se generó correctamente
+RUN echo "🔍 Verificando build después de npm run build..."
+RUN ls -la /var/www/public/ || echo "⚠️ Directorio public no encontrado"
+RUN ls -la /var/www/public/build/ || echo "⚠️ Directorio build no encontrado después de npm run build"
+RUN test -f /var/www/public/build/manifest.json && echo "✅ manifest.json encontrado" || echo "❌ manifest.json no encontrado"
+RUN cat /var/www/public/build/manifest.json | head -5 || echo "❌ No se puede leer manifest.json"
+
+# Asegurar que el directorio build se preserve
+RUN echo "💾 Preservando directorio build..."
+RUN cp -r /var/www/public/build /tmp/build-backup || echo "⚠️ No se pudo hacer backup del build"
+
 # Generar autoloader optimizado
 RUN composer dump-autoload --optimize
 
@@ -82,23 +93,35 @@ RUN pecl install redis \
 
 # Copiar archivos de la aplicación desde el build stage
 WORKDIR /var/www
-COPY --from=build /var/www /var/www
-COPY --from=build /usr/bin/composer /usr/bin/composer
+COPY --chown=www-data:www-data --from=build /var/www /var/www
+COPY --chown=www-data:www-data --from=build /usr/bin/composer /usr/bin/composer
+
+# Asegurar que el directorio build se copie correctamente
+RUN echo "🔧 Restaurando directorio build si es necesario..." && \
+    if [ ! -f "/var/www/public/build/manifest.json" ] && [ -d "/tmp/build-backup" ]; then \
+    echo "🔄 Restaurando build desde backup..." && \
+    cp -r /tmp/build-backup /var/www/public/build; \
+    fi
+
+# Verificar que los archivos se copiaron correctamente
+RUN echo "🔍 Verificando archivos después de copiar desde build stage..."
+RUN ls -la /var/www/public/ || echo "⚠️ Directorio public no encontrado en stage final"
+RUN ls -la /var/www/public/build/ || echo "⚠️ Directorio build no encontrado en stage final"
+RUN test -f /var/www/public/build/manifest.json && echo "✅ manifest.json encontrado en stage final" || echo "❌ manifest.json no encontrado en stage final"
 
 # Copiar y configurar scripts
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY fix-permissions.sh /var/www/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
     && chmod +x /var/www/fix-permissions.sh \
-    && mkdir -p /var/www/public/build \
-    && chown -R www-data:www-data /var/www/public/build \
-    && chmod -R 775 /var/www/public/build
+    && mkdir -p /var/www/storage/framework/{cache,sessions,views} \
+    && mkdir -p /var/www/storage/logs \
+    && mkdir -p /var/www/bootstrap/cache
 
-# Configurar permisos para Laravel de forma más agresiva
-RUN chown -R www-data:www-data /var/www \
-    && chmod -R 775 /var/www/storage \
-    && chmod -R 775 /var/www/bootstrap/cache \
-    && chmod -R 775 /var/www/public/build
+# Verificación final de que el manifest.json existe
+RUN echo "🔍 Verificación final del manifest.json..."
+RUN test -f /var/www/public/build/manifest.json && echo "✅ manifest.json encontrado en verificación final" || echo "❌ manifest.json NO encontrado en verificación final"
+RUN ls -la /var/www/public/build/ || echo "⚠️ Directorio build no existe en verificación final"
 
 EXPOSE 9000
 

@@ -30,9 +30,46 @@ spec:
     spec:
       securityContext:
         runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+      initContainers:
+        - name: generate-assets
+          image: migbertweb/laravel-prueba
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "🔧 Verificando assets de Vite..."
+              if [ ! -f "/var/www/public/build/manifest.json" ]; then
+                echo "⚠️ manifest.json no encontrado, generando assets..."
+                cd /var/www
+                npm install
+                npm run build
+                echo "✅ Assets generados"
+              else
+                echo "✅ Assets ya existen"
+              fi
+          volumeMounts:
+            - name: public-assets
+              mountPath: /var/www/public
+        - name: copy-public-assets
+          image: migbertweb/laravel-prueba
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "📁 Copiando assets públicos..."
+              cp -r /var/www/public/* /public-assets/ 2>/dev/null || true
+              echo "📋 Contenido del directorio public-assets:"
+              ls -la /public-assets/
+              if [ -d "/public-assets/build" ]; then
+                echo "✅ Directorio build copiado correctamente"
+                ls -la /public-assets/build/
+              else
+                echo "❌ Error: Directorio build no se copió"
+              fi
+          volumeMounts:
+            - name: public-assets
+              mountPath: /public-assets
       containers:
         - name: laravel-app
           image: migbertweb/laravel-prueba
@@ -41,7 +78,7 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: false
             runAsNonRoot: true
-            runAsUser: 1000
+            runAsUser: 101
             capabilities:
               drop:
                 - ALL
@@ -68,6 +105,9 @@ spec:
               subPath: ""
             - name: laravel-tmp
               mountPath: /tmp
+            - name: public-assets
+              mountPath: /var/www/public
+              readOnly: true
           resources:
             requests:
               memory: "256Mi"
@@ -128,6 +168,8 @@ spec:
               mountPath: /run
             - name: nginx-tmp
               mountPath: /tmp
+            - name: public-assets
+              mountPath: /var/www/public
           resources:
             requests:
               memory: "128Mi"
@@ -165,4 +207,6 @@ spec:
         - name: nginx-tmp
           emptyDir: {}
         - name: laravel-tmp
+          emptyDir: {}
+        - name: public-assets
           emptyDir: {}
